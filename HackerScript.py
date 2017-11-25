@@ -76,7 +76,7 @@ def leftButton(input):
 def rightButton(input):
     global suppress
     global turnRight
-
+    
     if suppress == False:
         print("Right button press detected\n")
         turnRight = True
@@ -103,7 +103,7 @@ def writeText(text,xPos,yPos,color):
 
 def getCurrentSpeed():
     return rand.randbetween(4,8) #Placeholder until speed driver is written
-
+    
 
 ##GPIO callback event initializations
 GPIO.add_event_detect(16, GPIO.FALLING, callback=quitButton, bouncetime=500)
@@ -144,7 +144,7 @@ print("Flags and values set...")
 ##Set tracked values
 distanceTraveled = 0  #In meters.  The amount of distance traveled in the current location
 currentSpeed = 6  #In meters/second.  Calculated from the RPM of the bike
-timeToDest = 0  #In seconds.  Calculated from the distance remaining and the speed
+timeToDest = 0  #In seconds.  Calculated from the distance remaining and the speed              
 print("Tracked values set...")
 
 ##Static values
@@ -165,20 +165,31 @@ while not done:
             print("tick")
             if turnTime == False:
                 distanceTraveled += ((currentSpeed+getCurrentSpeed())/2)*(tickTime/1000)  #Add distance traveled since last tick, using a linear interpolation based on previous speed and current speed
-                if distanceTraveled >= currentLocation.distance:
-                    turnTime = True
-                currentSpeed = getCurrentSpeed()  #Update current speed from RPM
-                timeToDest = ((currentLocation.distance - distanceTraveled)/currentSpeed)  #Distance remaining/speed in seconds.  Updates current ETA
 
-            if turnTime == True:
+                if distanceTraveled >= currentLocation.distance:  #If there is no more distance left, set turnTime to True
+                    turnTime = True
+
+                currentSpeed = getCurrentSpeed()  #Update current speed from RPM
+
+                if currentLocation.distance > distanceTraveled:
+                    timeToDest = ((currentLocation.distance - distanceTraveled)/currentSpeed)  #Distance remaining/speed in seconds.  Updates current ETA
+                else:
+                    timeToDest = 0
+                        
+                
+            if turnTime == True:        
                 if turnLeft == True:
                     changeLocation(currentLocation.leftLink)
                     print("\nTurned left. New location is "+currentLocation.name)
                     time.sleep(.25)
                     resetFlags()
-
+                
                 if turnRight == True:
                     changeLocation(currentLocation.rightLink)
                     print("\nTurned right. New location is "+currentLocation.name)
                     time.sleep(.25)
                     resetFlags()
+        
+        
+        
+
