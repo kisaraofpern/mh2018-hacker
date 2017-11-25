@@ -234,11 +234,9 @@ while not done:
 
                 currentSpeed = getCurrentSpeed()  #Update current speed from RPM
 
+                timeToDest = 0 #Distance remaining/speed in seconds.  Updates current ETA
                 if currentLocation.distance > distanceTraveled:
-                    timeToDest = ((currentLocation.distance - distanceTraveled)/currentSpeed)  #Distance remaining/speed in seconds.  Updates current ETA
-                else:
-                    timeToDest = 0
-
+                    timeToDest = ((currentLocation.distance - distanceTraveled)/currentSpeed)
 
             if turnTime == True:
                 if turnLeft == True:
