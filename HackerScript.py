@@ -168,7 +168,6 @@ def writeText(text, xPos, yPos, color):
 def getCurrentSpeed():
     return rand.randbetween(4, 8) #Placeholder until speed driver is written
 
-
 ##GPIO callback event initializations
 GPIO.add_event_detect(16, GPIO.FALLING, callback=quitButton, bouncetime=500)
 GPIO.add_event_detect(11, GPIO.RISING, callback=rightButton, bouncetime=500)
@@ -229,10 +228,17 @@ while not done:
             print "tick"
             if turnTime == False:
                 distanceTraveled += ((currentSpeed+getCurrentSpeed())/2)*(tickTime/1000)  #Add distance traveled since last tick, using a linear interpolation based on previous speed and current speed
-                if distanceTraveled >= currentLocation.distance:
+
+                if distanceTraveled >= currentLocation.distance:  #If there is no more distance left, set turnTime to True
                     turnTime = True
+
                 currentSpeed = getCurrentSpeed()  #Update current speed from RPM
-                timeToDest = ((currentLocation.distance - distanceTraveled)/currentSpeed)  #Distance remaining/speed in seconds.  Updates current ETA
+
+                if currentLocation.distance > distanceTraveled:
+                    timeToDest = ((currentLocation.distance - distanceTraveled)/currentSpeed)  #Distance remaining/speed in seconds.  Updates current ETA
+                else:
+                    timeToDest = 0
+
 
             if turnTime == True:
                 if turnLeft == True:
