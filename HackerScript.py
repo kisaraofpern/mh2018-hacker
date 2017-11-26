@@ -166,6 +166,7 @@ def reset_flags():
     suppress = False
     turn_left = False
     turn_right = False
+    turn_time = False
 
 def reset_values():
     global distance_traveled
@@ -238,12 +239,13 @@ while not done:
             done = True
 
         if event.type == pygame.USEREVENT:
-            print "tick"
             if not turn_time:
                 distance_traveled += ((current_speed+get_current_speed())/2)*(tick_time/1000)  #Add distance traveled since last tick, using a linear interpolation based on previous speed and current speed
-
+                print("Not turning time!" + distance_traveled)
+                
                 if distance_traveled >= current_location.distance:  #If there is no more distance left, set turn_time to True
                     turn_time = True
+                    print("Time to turn!" + turn_time)
 
                 current_speed = get_current_speed()  #Update current speed from RPM
 
@@ -253,14 +255,15 @@ while not done:
                     time_to_dest = ((current_location.distance - distance_traveled)/current_speed)
 
             if turn_time:
+                print("Turning time!" + turn_time)
                 if turn_left:
                     change_location(current_location.left_link)
                     print "\nTurned left. New location is "+current_location.name
-                    time.sleep(.25)
+                    #time.sleep(.25)
                     reset_flags()
 
                 if turn_right:
                     change_location(current_location.right_link)
                     print "\nTurned right. New location is "+current_location.name
-                    time.sleep(.25)
+                    #time.sleep(.25)
                     reset_flags()
