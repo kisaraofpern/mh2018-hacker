@@ -255,15 +255,17 @@ while not done:
                     time_to_dest = ((current_location.distance - distance_traveled)/current_speed)
 
             if turn_time:
-                print("Turning time!" + turn_time)
+                print("Turning time! " + str(turn_time))
                 if turn_left:
                     change_location(current_location.left_link)
                     print "\nTurned left. New location is "+current_location.name
                     #time.sleep(.25)
                     reset_flags()
+                    reset_values()
 
                 if turn_right:
                     change_location(current_location.right_link)
                     print "\nTurned right. New location is "+current_location.name
                     #time.sleep(.25)
                     reset_flags()
+                    reset_values()
