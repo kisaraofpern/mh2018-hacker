@@ -78,7 +78,7 @@ location_dict["highway_a"].right_link = "lost_highway_a"
 location_dict["highway_b"].left_link = "lost_highway_a"
 location_dict["highway_b"].right_link = "highway_c"
 
-location_dict["highway_c"].right_link = "lost_highway_a"
+location_dict["highway_c"].left_link = "lost_highway_a"
 location_dict["highway_c"].right_link = "highway_d"
 
 location_dict["highway_d"].left_link = "highway_e"
@@ -201,7 +201,7 @@ myfont = pygame.font.SysFont("Times New Roman", 200)
 
 ##Initialize Pygame screen
 screen = pygame.display.set_mode((0, 0))
-#pygame.display.toggle_fullscreen()
+pygame.display.toggle_fullscreen()
 print "Pygame screen initialization complete..."
 
 ##Convert images for Pygame display
