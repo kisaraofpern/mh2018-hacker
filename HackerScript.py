@@ -46,14 +46,14 @@ locationDict = {
     "highway_h":location("highway-h.png"),
     "highway_i":location("highway-i.png"),
     "highway_j":location("highway-j.png"),
-    "calTech":location("calTech.jpg"),
-    "lost_highway_a":location("lost_highway-a.png"),
-    "lost_highway_b":location("lost_highway-b.png"),
-    "lost_highway_c":location("lost_highway-c.png"),
-    "lost_highway_d":location("lost_highway-d.png"),
-    "lost_highway_e":location("lost_highway-e.png"),
-    "lost_highway_f":location("lost_highway-f.png"),
-    "lost_highway_g":location("lost_highway-g.png")
+    "calTech":location("CalTech.jpg"),
+    "lost_highway_a":location("lost-highway-a.jpg"),
+    "lost_highway_b":location("lost-highway-b.jpg"),
+    "lost_highway_c":location("lost-highway-c.jpg"),
+    "lost_highway_d":location("lost-highway-d.jpg"),
+    "lost_highway_e":location("lost-highway-e.png"),
+    "lost_highway_f":location("lost-highway-f.png"),
+    "lost_highway_g":location("lost-highway-g.png")
 }
 
 print "Images loaded..."
@@ -166,7 +166,7 @@ def writeText(text, xPos, yPos, color):
     pygame.display.flip()
 
 def getCurrentSpeed():
-    return rand.randbetween(4, 8) #Placeholder until speed driver is written
+    return rand.randrange(4, 8) #Placeholder until speed driver is written
 
 ##GPIO callback event initializations
 GPIO.add_event_detect(16, GPIO.FALLING, callback=quitButton, bouncetime=500)
