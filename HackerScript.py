@@ -202,7 +202,7 @@ myfont = pygame.font.SysFont("Times New Roman", 200)
 
 ##Initialize Pygame screen
 screen = pygame.display.set_mode((0, 0))
-pygame.display.toggle_fullscreen()
+#pygame.display.toggle_fullscreen()
 print "Pygame screen initialization complete..."
 
 ##Convert images for Pygame display
@@ -241,11 +241,11 @@ while not done:
         if event.type == pygame.USEREVENT:
             if not turn_time:
                 distance_traveled += ((current_speed+get_current_speed())/2)*(tick_time/1000)  #Add distance traveled since last tick, using a linear interpolation based on previous speed and current speed
-                print("Not turning time!" + distance_traveled)
+                print("Not turning time! " + str(distance_traveled))
                 
                 if distance_traveled >= current_location.distance:  #If there is no more distance left, set turn_time to True
                     turn_time = True
-                    print("Time to turn!" + turn_time)
+                    print("Time to turn! " + str(turn_time))
 
                 current_speed = get_current_speed()  #Update current speed from RPM
 
