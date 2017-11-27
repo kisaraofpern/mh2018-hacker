@@ -163,6 +163,7 @@ def reset_flags():
     global suppress
     global turn_left
     global turn_right
+    global turn_time
     suppress = False
     turn_left = False
     turn_right = False
@@ -175,8 +176,8 @@ def reset_values():
 def write_text(text, xPos, yPos, color):
     global current_location
     screen.fill((255, 255, 255))
-    screen.blit(current_location.image(0, 0))
-    screen.blit(myfont.render(text, False, color, (xPos, yPos)))
+    screen.blit(current_location.image,(0, 0))
+    screen.blit(myfont.render(text, False, color),(xPos, yPos))
     pygame.display.flip()
 
 def get_current_speed():
@@ -198,7 +199,7 @@ print "Pygame clock initialized..."
 
 ##Font initialization
 pygame.font.init()
-myfont = pygame.font.SysFont("Times New Roman", 200)
+myfont = pygame.font.SysFont("Times New Roman", 72)
 
 ##Initialize Pygame screen
 screen = pygame.display.set_mode((0, 0))
@@ -241,7 +242,8 @@ while not done:
         if event.type == pygame.USEREVENT:
             if not turn_time:
                 distance_traveled += ((current_speed+get_current_speed())/2)*(tick_time/1000)  #Add distance traveled since last tick, using a linear interpolation based on previous speed and current speed
-                print("Not turning time! " + str(distance_traveled))
+                write_text("You have gone: " + str(distance_traveled), 100, 100, (255,0,0))
+                #print("Not turning time! " + str(distance_traveled))
                 
                 if distance_traveled >= current_location.distance:  #If there is no more distance left, set turn_time to True
                     turn_time = True
@@ -254,12 +256,18 @@ while not done:
                 if current_location.distance > distance_traveled:
                     time_to_dest = ((current_location.distance - distance_traveled)/current_speed)
 
+                if turn_left:
+                    reset_flags()
+                if turn_right:
+                    reset_flags()
+
             if turn_time:
                 print("Turning time! " + str(turn_time))
                 if turn_left:
                     change_location(current_location.left_link)
                     print "\nTurned left. New location is "+current_location.name
                     #time.sleep(.25)
+                    write_text("LEFT",0,0,(255,0,0))
                     reset_flags()
                     reset_values()
 
@@ -267,5 +275,6 @@ while not done:
                     change_location(current_location.right_link)
                     print "\nTurned right. New location is "+current_location.name
                     #time.sleep(.25)
+                    write_text("RIGHT",0,0,(255,0,0))
                     reset_flags()
                     reset_values()
