@@ -28,7 +28,7 @@ class TextBox(object):
         self.box.move(self.left, self.top)
 
         # Initialize the Font object for the textbox.
-        self.font = pygame.font.SysFont("Comic Sans MS", 40)
+        self.font = pygame.font.SysFont("Droid Sans Fallback Full", 40)
 
     def add_text(self, string):
         """Draws text onto a new Surface and returns that Surface"""
@@ -40,6 +40,7 @@ class TextBox(object):
         # TODO: collision handling, maybe.
         print 'About to draw text...'
         this_text = self.font.render(string, True, BLACK)
+        print this_text.get_bounding_rect().height
         SCREEN.fill(RED)
         SCREEN.blit(self.text, (self.left, self.top))
         self.text.fill(YELLOW)
@@ -57,7 +58,7 @@ SCREEN = pygame.display.set_mode((SCREENWIDTH, SCREENHEIGHT))
 pygame.display.set_caption("Cannonball Run")
 
 pygame.font.init()
-MYFONT = pygame.font.SysFont("Comic Sans MS", 20)
+MYFONT = pygame.font.SysFont("Droid Sans Fallback Full", 20)
 
 while True:
     pygame.event.pump()
