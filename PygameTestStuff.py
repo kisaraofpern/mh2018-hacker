@@ -6,8 +6,8 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 YELLOW = (255, 255, 0)
-SCREENWIDTH = 640
-SCREENHEIGHT = 360
+SCREENWIDTH = 1280
+SCREENHEIGHT = 720
 
 class TextBox(object):
     """ A textbox is comprised of its Surface (what is being rendered) and its Rect (where it is rendered). """
@@ -28,7 +28,7 @@ class TextBox(object):
         self.box.move(self.left, self.top)
 
         # Initialize the Font object for the textbox.
-        self.font = pygame.font.SysFont("Comic Sans MS", 300)
+        self.font = pygame.font.SysFont("Comic Sans MS", 40)
 
     def add_text(self, string):
         """Draws text onto a new Surface and returns that Surface"""
@@ -38,15 +38,18 @@ class TextBox(object):
         # Because it is dependent on `render`, `add_text` is NOT thread-safe:
         # Only a single thread can render text at a time.
         # TODO: collision handling, maybe.
+        print 'About to draw text...'
         this_text = self.font.render(string, True, BLACK)
-        this_box = this_text.get_rect()
-        this_box.move(self.left, self.top)
-        self.text.blit(this_text, this_box)
+        SCREEN.fill(RED)
+        SCREEN.blit(self.text, (self.left, self.top))
+        self.text.fill(YELLOW)
+        self.text.blit(this_text, (0,0))
+        pygame.display.update()
 
-    # def render(self):
-    #     """Renders the textbox"""
-    #     SCREEN.blit(self.text, self.box)
-    #     pygame.display.update(self.box)
+    def render(self):
+        """Renders the textbox"""
+        SCREEN.blit(self.text, (self.left, self.top))
+        pygame.display.update(self.box)
 
 global SCREEN
 pygame.init()
@@ -54,20 +57,20 @@ SCREEN = pygame.display.set_mode((SCREENWIDTH, SCREENHEIGHT))
 pygame.display.set_caption("Cannonball Run")
 
 pygame.font.init()
-MYFONT = pygame.font.SysFont("Comic Sans MS", 300)
+MYFONT = pygame.font.SysFont("Comic Sans MS", 20)
 
 while True:
     pygame.event.pump()
-    # pygame.font.init()
-    # my_text_box = TextBox(500, 500, 200, 100)
-    # SCREEN.blit(my_text_box.text, my_text_box.box)
+    pygame.font.init()
+    my_text_box = TextBox(500, 500, 200, 100)
+    SCREEN.blit(my_text_box.text, my_text_box.box)
     for x in range(0, 10):
-        SCREEN.fill(RED)
-        # my_text_box.add_text(chr(x+48))
-        print "About to render..."
+        # SCREEN.fill(RED)
+        my_text_box.add_text(chr(x+48))
+        # print "About to render..."
         # my_text_box.render()
-        font_object = MYFONT.render(chr(x+48), False, BLACK)
-        SCREEN.blit(font_object, (0, 0))
-        pygame.display.update()
+        # font_object = MYFONT.render(chr(x+48), False, BLACK)
+        # SCREEN.blit(font_object, (0, 0))
+        # pygame.display.update()
         print x
-        pygame.time.delay(2000)
+        pygame.time.delay(500)
