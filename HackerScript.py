@@ -1,9 +1,9 @@
-import numpy as np
-import RPi.GPIO as GPIO
 import time
-import pygame
 import os
 import random as rand
+import RPi.GPIO as GPIO
+import pygame
+from pygame.locals import *
 
 print "Initializing..."
 
@@ -21,157 +21,172 @@ GPIO.output(13, True)
 
 ## Class definitions
 ## Default value in meters for "how long" this location is.
-default_distance = 100
+DEFAULTDISTANCE = 100
 
-class location():
-    def __init__(self, image, distance=default_distance):
+class Location(object):
+    def __init__(self, image, distance=DEFAULTDISTANCE):
         self.image = pygame.image.load(image)
         self.image = pygame.transform.scale(self.image, (1920, 1080))
-        self.leftLink = "0"
-        self.rightLink = "0"
+        self.left_link = "0"
+        self.right_link = "0"
         self.distance = distance
         self.name = image.split(".")[0]
-    def convertImage(self):
+
+    def convert_image(self):
         self.image = self.image.convert()
 
 ##Location initializations
-locationDict = {
-    "highway_a":location("highway-a.png"),
-    "highway_b":location("highway-b.png"),
-    "highway_c":location("highway-c.png"),
-    "highway_d":location("highway-d.png"),
-    "highway_e":location("highway-e.png"),
-    "highway_f":location("highway-f.png"),
-    "highway_g":location("highway-g.png"),
-    "highway_h":location("highway-h.png"),
-    "highway_i":location("highway-i.png"),
-    "highway_j":location("highway-j.png"),
-    "calTech":location("CalTech.jpg"),
-    "lost_highway_a":location("lost-highway-a.jpg"),
-    "lost_highway_b":location("lost-highway-b.jpg"),
-    "lost_highway_c":location("lost-highway-c.jpg"),
-    "lost_highway_d":location("lost-highway-d.jpg"),
-    "lost_highway_e":location("lost-highway-e.png"),
-    "lost_highway_f":location("lost-highway-f.png"),
-    "lost_highway_g":location("lost-highway-g.png")
+location_dict = {
+    "highway_a":Location("highway-a-full.png"),
+    "highway_b":Location("highway-b-full.png"),
+    "highway_c":Location("highway-c-full.png"),
+    "highway_d":Location("highway-d-full.png"),
+    "highway_e":Location("highway-e-full.png"),
+    "highway_f":Location("highway-f-full.png"),
+    "highway_g":Location("highway-g-full.png"),
+    "highway_h":Location("highway-h-full.png"),
+    "highway_i":Location("highway-i-full.png"),
+    "highway_j":Location("highway-j-full.png"),
+    "calTech":Location("CalTech.jpg"),
+    "lost_highway_a":Location("lost-highway-a.jpg"),
+    "lost_highway_b":Location("lost-highway-b.jpg"),
+    "lost_highway_c":Location("lost-highway-c.jpg"),
+    "lost_highway_d":Location("lost-highway-d.jpg"),
+    "lost_highway_e":Location("lost-highway-e.png"),
+    "lost_highway_f":Location("lost-highway-f.png"),
+    "lost_highway_g":Location("lost-highway-g.png")
 }
 
 print "Images loaded..."
 
-##Tree linkages
-locationDict["highway_a"].leftLink = "highway_b"
-locationDict["highway_a"].rightLink = "lost_highway_a"
+## Tree linkages
+## To correctly navigate from beginning to end:
+# A: left
+# B: right
+# C: right
+# D: left
+# E: left
+# F: right
+# G: left
+# H: right
+# I: right
+# J: left
 
-locationDict["highway_b"].leftLink = "highway_c"
-locationDict["highway_b"].rightLink = "lost_highway_a"
+location_dict["highway_a"].left_link = "highway_b"
+location_dict["highway_a"].right_link = "lost_highway_a"
 
-locationDict["highway_c"].leftLink = "highway_d"
-locationDict["highway_c"].rightLink = "lost_highway_a"
+location_dict["highway_b"].left_link = "lost_highway_a"
+location_dict["highway_b"].right_link = "highway_c"
 
-locationDict["highway_d"].leftLink = "highway_e"
-locationDict["highway_d"].rightLink = "lost_highway_b"
+location_dict["highway_c"].left_link = "lost_highway_a"
+location_dict["highway_c"].right_link = "highway_d"
 
-locationDict["highway_e"].leftLink = "highway_f"
-locationDict["highway_e"].rightLink = "lost_highway_c"
+location_dict["highway_d"].left_link = "highway_e"
+location_dict["highway_d"].right_link = "lost_highway_b"
 
-locationDict["highway_f"].leftLink = "highway_g"
-locationDict["highway_f"].rightLink = "lost_highway_d"
+location_dict["highway_e"].left_link = "highway_f"
+location_dict["highway_e"].right_link = "lost_highway_c"
 
-locationDict["highway_g"].leftLink = "highway_h"
-locationDict["highway_g"].rightLink = "lost_highway_e"
+location_dict["highway_f"].left_link = "lost_highway_d"
+location_dict["highway_f"].right_link = "highway_g"
 
-locationDict["highway_h"].leftLink = "highway_i"
-locationDict["highway_h"].rightLink = "lost_highway_f"
+location_dict["highway_g"].left_link = "highway_h"
+location_dict["highway_g"].right_link = "lost_highway_e"
 
-locationDict["highway_i"].leftLink = "highway_j"
-locationDict["highway_i"].rightLink = "lost_highway_g"
+location_dict["highway_h"].left_link = "lost_highway_f"
+location_dict["highway_h"].right_link = "highway_i"
 
-locationDict["highway_j"].leftLink = "calTech"
-locationDict["highway_j"].rightLink = "lost_highway_g"
+location_dict["highway_i"].left_link = "lost_highway_g"
+location_dict["highway_i"].right_link = "highway_j"
 
-locationDict["lost_highway_a"].leftLink = "highway_a"
-locationDict["lost_highway_a"].rightLink = "highway_a"
+location_dict["highway_j"].left_link = "calTech"
+location_dict["highway_j"].right_link = "lost_highway_g"
 
-locationDict["lost_highway_b"].leftLink = "highway_b"
-locationDict["lost_highway_b"].rightLink = "highway_b"
+location_dict["lost_highway_a"].left_link = "highway_a"
+location_dict["lost_highway_a"].right_link = "highway_a"
 
-locationDict["lost_highway_c"].leftLink = "highway_c"
-locationDict["lost_highway_c"].rightLink = "highway_c"
+location_dict["lost_highway_b"].left_link = "highway_b"
+location_dict["lost_highway_b"].right_link = "highway_b"
 
-locationDict["lost_highway_d"].leftLink = "highway_d"
-locationDict["lost_highway_d"].rightLink = "highway_d"
+location_dict["lost_highway_c"].left_link = "highway_c"
+location_dict["lost_highway_c"].right_link = "highway_c"
 
-locationDict["lost_highway_e"].leftLink = "highway_e"
-locationDict["lost_highway_e"].rightLink = "highway_e"
+location_dict["lost_highway_d"].left_link = "highway_d"
+location_dict["lost_highway_d"].right_link = "highway_d"
 
-locationDict["lost_highway_f"].leftLink = "highway_f"
-locationDict["lost_highway_f"].rightLink = "highway_f"
+location_dict["lost_highway_e"].left_link = "highway_e"
+location_dict["lost_highway_e"].right_link = "highway_e"
 
-locationDict["lost_highway_g"].leftLink = "highway_g"
-locationDict["lost_highway_g"].rightLink = "highway_g"
+location_dict["lost_highway_f"].left_link = "highway_f"
+location_dict["lost_highway_f"].right_link = "highway_f"
+
+location_dict["lost_highway_g"].left_link = "highway_g"
+location_dict["lost_highway_g"].right_link = "highway_g"
 
 print "Tree links created..."
 
 ##Tree initialization
-currentLocation = "highway_a"
+current_location = "highway_a"
 
 #Functions
-def quitButton(input):
+def quit_button(input):
     print "Quit button detected! \n Quitting..."
     pygame.quit()
     GPIO.cleanup()
 
-def changeLocation(location):
-    global currentLocation
-    currentLocation = locationDict[location]
+def change_location(location):
+    global current_location
+    current_location = location_dict[location]
     screen.fill((255, 255, 255))
-    screen.blit(currentLocation.image, (0, 0))
+    screen.blit(current_location.image, (0, 0))
     pygame.display.flip()
 
-def leftButton(input):
+def left_button(input):
     global suppress
-    global turnLeft
+    global turn_left
 
-    if suppress == False:
+    if not suppress:
         print "Left button press detected\n"
-        turnLeft = True
+        turn_left = True
         suppress = True
 
-def rightButton(input):
+def right_button(input):
     global suppress
-    global turnRight
+    global turn_right
 
-    if suppress == False:
+    if not suppress:
         print "Right button press detected\n"
-        turnRight = True
+        turn_right = True
         suppress = True
 
-def resetFlags():
+def reset_flags():
     global suppress
-    global turnLeft
-    global turnRight
+    global turn_left
+    global turn_right
+    global turn_time
     suppress = False
-    turnLeft = False
-    turnRight = False
+    turn_left = False
+    turn_right = False
+    turn_time = False
 
-def resetValues():
-    global distanceTraveled
-    distanceTraveled = 0
+def reset_values():
+    global distance_traveled
+    distance_traveled = 0
 
-def writeText(text, xPos, yPos, color):
-    global currentLocation
+def write_text(text, xPos, yPos, color):
+    global current_location
     screen.fill((255, 255, 255))
-    screen.blit(currentLocation.image(0, 0))
-    screen.blit(myfont.render(text, False, color, (xPos, yPos)))
+    screen.blit(current_location.image,(0, 0))
+    screen.blit(myfont.render(text, False, color),(xPos, yPos))
     pygame.display.flip()
 
-def getCurrentSpeed():
+def get_current_speed():
     return rand.randrange(4, 8) #Placeholder until speed driver is written
 
 ##GPIO callback event initializations
-GPIO.add_event_detect(16, GPIO.FALLING, callback=quitButton, bouncetime=500)
-GPIO.add_event_detect(11, GPIO.RISING, callback=rightButton, bouncetime=500)
-GPIO.add_event_detect(15, GPIO.RISING, callback=leftButton, bouncetime=500)
+GPIO.add_event_detect(16, GPIO.FALLING, callback=quit_button, bouncetime=500)
+GPIO.add_event_detect(11, GPIO.RISING, callback=right_button, bouncetime=500)
+GPIO.add_event_detect(15, GPIO.RISING, callback=left_button, bouncetime=500)
 print "GPIO callbacks set..."
 
 ##Pygame initialization
@@ -184,7 +199,7 @@ print "Pygame clock initialized..."
 
 ##Font initialization
 pygame.font.init()
-myfont = pygame.font.SysFont("Times New Roman", 200)
+myfont = pygame.font.SysFont("Times New Roman", 72)
 
 ##Initialize Pygame screen
 screen = pygame.display.set_mode((0, 0))
@@ -192,30 +207,30 @@ screen = pygame.display.set_mode((0, 0))
 print "Pygame screen initialization complete..."
 
 ##Convert images for Pygame display
-for x in locationDict.keys():
-    locationDict[x].convertImage()
+for x in location_dict.keys():
+    location_dict[x].convert_image()
 print "Images converted..."
 
 ##Set flags
 done = False
-turnTime = False
-turnLeft = False
-turnRight = False
+turn_time = False
+turn_left = False
+turn_right = False
 suppress = False
 print "Flags and values set..."
 
 ##Set tracked values
-distanceTraveled = 0  #In meters.  The amount of distance traveled in the current location
-currentSpeed = 6  #In meters/second.  Calculated from the RPM of the bike
-timeToDest = 0  #In seconds.  Calculated from the distance remaining and the speed
+distance_traveled = 0  #In meters.  The amount of distance traveled in the current location
+current_speed = 6  #In meters/second.  Calculated from the RPM of the bike
+time_to_dest = 0  #In seconds.  Calculated from the distance remaining and the speed
 print "Tracked values set..."
 
 ##Static values
-tickTime = 1000  #In milliseconds.  Sets the framrate of the game
+tick_time = 1000  #In milliseconds.  Sets the framrate of the game
 print "Static values set..."
 
-changeLocation(currentLocation)
-pygame.time.set_timer(pygame.USEREVENT, tickTime)
+change_location(current_location)
+pygame.time.set_timer(pygame.USEREVENT, tick_time)
 print "Initialization complete!"
 
 ##Pygame runtime
@@ -225,28 +240,41 @@ while not done:
             done = True
 
         if event.type == pygame.USEREVENT:
-            print "tick"
-            if turnTime == False:
-                distanceTraveled += ((currentSpeed+getCurrentSpeed())/2)*(tickTime/1000)  #Add distance traveled since last tick, using a linear interpolation based on previous speed and current speed
+            if not turn_time:
+                distance_traveled += ((current_speed+get_current_speed())/2)*(tick_time/1000)  #Add distance traveled since last tick, using a linear interpolation based on previous speed and current speed
+                write_text("You have gone: " + str(distance_traveled), 100, 100, (255,0,0))
+                #print("Not turning time! " + str(distance_traveled))
 
-                if distanceTraveled >= currentLocation.distance:  #If there is no more distance left, set turnTime to True
-                    turnTime = True
+                if distance_traveled >= current_location.distance:  #If there is no more distance left, set turn_time to True
+                    turn_time = True
+                    print("Time to turn! " + str(turn_time))
 
-                currentSpeed = getCurrentSpeed()  #Update current speed from RPM
+                current_speed = get_current_speed()  #Update current speed from RPM
 
-                timeToDest = 0 #Distance remaining/speed in seconds.  Updates current ETA
-                if currentLocation.distance > distanceTraveled:
-                    timeToDest = ((currentLocation.distance - distanceTraveled)/currentSpeed)
+                time_to_dest = 0 #Distance remaining/speed in seconds.  Updates current ETA
 
-            if turnTime == True:
-                if turnLeft == True:
-                    changeLocation(currentLocation.leftLink)
-                    print "\nTurned left. New location is "+currentLocation.name
-                    time.sleep(.25)
-                    resetFlags()
+                if current_location.distance > distance_traveled:
+                    time_to_dest = ((current_location.distance - distance_traveled)/current_speed)
 
-                if turnRight == True:
-                    changeLocation(currentLocation.rightLink)
-                    print("\nTurned right. New location is "+currentLocation.name)
-                    time.sleep(.25)
-                    resetFlags()
+                if turn_left:
+                    reset_flags()
+                if turn_right:
+                    reset_flags()
+
+            if turn_time:
+                print("Turning time! " + str(turn_time))
+                if turn_left:
+                    change_location(current_location.left_link)
+                    print "\nTurned left. New location is "+current_location.name
+                    #time.sleep(.25)
+                    write_text("LEFT",0,0,(255,0,0))
+                    reset_flags()
+                    reset_values()
+
+                if turn_right:
+                    change_location(current_location.right_link)
+                    print "\nTurned right. New location is "+current_location.name
+                    #time.sleep(.25)
+                    write_text("RIGHT",0,0,(255,0,0))
+                    reset_flags()
+                    reset_values()
