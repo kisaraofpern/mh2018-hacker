@@ -16,7 +16,7 @@ pygame.display.set_caption("Cannonball Run")
 CLOCK = pygame.time.Clock()
 
 print "Initializing Pygame display..."
-SCREEN = pygame.display.set((0, 0))
+SCREEN = pygame.display.set_mode((0,0))
 # pygame.display.toggle_fullscreen()
 
 # This Rectangle will be used in reference to updating SCREEN
@@ -26,8 +26,8 @@ MAIN_RECT = pygame.Rect(0, 0, 1920, 980)
 ## Default values for class definitions
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-SCREENWIDTH = 1920
-SCREENHEIGHT = 1080
+SCREENWIDTH = SCREEN.get_rect().width
+SCREENHEIGHT = SCREEN.get_rect().height
 
 # Class Definitions
 class Location(object):
@@ -43,11 +43,12 @@ class Location(object):
 class TextBox(object):
     """ A textbox is comprised of its Surface (what is being rendered) and its Rect (where it is rendered). """
     """ A textbox is comprised of its Surface (what is being rendered) and its Rect (where it is rendered). """
-    def __init__(self, left, top, width, height, fill_color=BLACK):
+    def __init__(self, left, top, width, height, fill_color=WHITE):
         self.left = left
         self.top = top
         self.width = width
         self.height = height
+        self.fill_color = fill_color
 
         # Initialize the Surface for the textbox.
         # This is what the text will render onto.
@@ -57,7 +58,7 @@ class TextBox(object):
         # Get the Rect for the textbox.
         # Update the position based on initialization values.
         self.box = self.text.get_rect()
-        self.box.move(self.left, self.top)
+        self.box = self.box.move(self.left, self.top)
 
 ## Global variables referenced in functions
 print "Setting default values for flags..."
@@ -121,15 +122,18 @@ def get_current_speed():
 
 # Transformations
 def change_location(location):
-    global current_location, dirty_rects
+    global current_location
+    global dirty_rects
+    global SCREEN
     current_location = location_dict[location]
-    SCREEN.fill((255, 255, 255))
+    SCREEN.fill(BLACK)
     SCREEN.blit(current_location.image, (0, 0))
     dirty_rects.append(MAIN_RECT)
 
-def draw_text(textbox, string, text_color=WHITE, font="Droid Sans Fallback Full", font_size=40):
+def draw_text(textbox, string, text_color=BLACK, font="Piboto", font_size=40):
     """Draws text onto a new Surface and returns that Surface"""
     global dirty_rects
+    global SCREEN
     # pygame.font.Font.render draws text on a new Surface and returns
     # that surface.
     # draw_text will apply that surface to the textbox.
@@ -138,11 +142,11 @@ def draw_text(textbox, string, text_color=WHITE, font="Droid Sans Fallback Full"
     margin_left = 25
     margin_top = 15
 
-    textbox.font = pygame.font.SysFont(font, font_size)
+    textbox.font = pygame.font.SysFont(font, font_size, bold=True)
     this_text = textbox.font.render(string, True, text_color)
-    SCREEN.blit(textbox.text, (textbox.left, textbox.top))
     textbox.text.fill(textbox.fill_color)
     textbox.text.blit(this_text, (margin_left, margin_top))
+    SCREEN.blit(textbox.text, (textbox.left, textbox.top))
     dirty_rects.append(textbox.box)
 
 def update_display():
@@ -150,14 +154,15 @@ def update_display():
     pygame.display.update(dirty_rects)
     dirty_rects = []
 
-def flash_text(textbox, string, text_color=WHITE, font="Droid Sans Fallback Full", font_size=40):
+def flash_text(textbox, string, text_color=BLACK, font="Piboto", font_size=40):
     """Flashes the text in the display three times"""
     for x in range (0, 3):
         draw_text(textbox, string, text_color, font, font_size)
         update_display()
+        pyclock.time.wait(250)
 
 # Initializations
-print "Initializing..."
+print "Conducting remaining initializations..."
 
 print "Initializing GPIO ports and callbacks..."
 # GPIO port declarations
@@ -264,9 +269,10 @@ location_dict["lost_highway_g"].right_link = "highway_g"
 
 print "Initializing HUD..."
 # Defined values for the sizes of the textboxes in the HUD
-TEXTBOX_TOP    = SCREENHEIGHT-100
+
 TEXTBOX_WIDTH  = SCREENWIDTH/3
-TEXTBOX_HEIGHT = 100
+TEXTBOX_HEIGHT = SCREENHEIGHT/5
+TEXTBOX_TOP    = SCREENHEIGHT*4/5
 
 speed_textbox = TextBox(
     0,
@@ -289,14 +295,14 @@ destination_distance_textbox = TextBox(
     TEXTBOX_WIDTH,
     TEXTBOX_HEIGHT)
 
+change_location(current_location)
 draw_text(speed_textbox, "Speed: 0 m/s")
 draw_text(total_dist_textbox, "Total Distance Traveled: 0m")
 draw_text(turn_textbox, "")
 draw_text(destination_distance_textbox, "Distance to CalTech: 1000m")
-
-change_location(current_location)
-pygame.time.set_timer(pygame.USEREVENT, tick_time)
 update_display()
+
+pygame.time.set_timer(pygame.USEREVENT, tick_time)
 print "Initialization complete!"
 
 ##Pygame runtime
@@ -324,7 +330,7 @@ while not done:
                 if current_location.distance > distance_traveled:
                     time_to_dest = ((current_location.distance - distance_traveled)/current_speed)
 
-                if time_to_dest < 10:
+                if time_to_dest < 10 and time_to_dest > 0:
                     draw_text(turn_textbox, "TURN UPCOMING")
                     update_display()
 
@@ -337,6 +343,7 @@ while not done:
                 print("Turning time! " + str(turn_time))
                 if turn_left:
                     flash_text(turn_textbox, "LEFT TURN")
+                    draw_text(turn_textbox, '')
                     change_location(current_location.left_link)
                     update_display()
                     print "\nTurned left. New location is "+current_location.name
@@ -346,6 +353,7 @@ while not done:
 
                 if turn_right:
                     flash_text(turn_textbox, "RIGHT TURN")
+                    draw_text(turn_textbox, '')
                     change_location(current_location.right_link)
                     update_display()
                     print "\nTurned right. New location is "+current_location.name

@@ -28,20 +28,20 @@ class TextBox(object):
         self.box = self.text.get_rect()
         self.box = self.box.move(self.left, self.top)
 
-    def draw_text(self, string, text_color=WHITE, font="Droid Sans Fallback Full", font_size=40):
+    def draw_text(self, string, text_color=WHITE, font="Piboto", font_size=40):
         """Draws text onto a new Surface and returns that Surface"""
         # pygame.font.Font.render draws text on a new Surface and returns
         # that surface.
         # add_text will apply that surface to the textbox.
         # Because it is dependent on `render`, `add_text` is NOT thread-safe:
         # Only a single thread can render text at a time.
-        self.font = pygame.font.SysFont(font, font_size)
+        self.font = pygame.font.SysFont(font, font_size, bold=True)
         this_text = self.font.render(string, True, text_color)
-        SCREEN.fill(BLACK)
+        SCREEN.fill(RED)
         SCREEN.blit(self.text, (self.left, self.top))
         self.text.fill(self.fill_color)
         self.text.blit(this_text, (25,15))
-        pygame.display.update()
+        pygame.display.update(self.box)
 
     def render(self):
         """Renders the textbox"""
@@ -63,7 +63,7 @@ while True:
     SCREEN.blit(my_text_box.text, my_text_box.box)
     for x in range(0, 10):
         # SCREEN.fill(RED)
-        my_text_box.add_text(chr(x+48))
+        my_text_box.draw_text(chr(x+48))
         # print "About to render..."
         # my_text_box.render()
         # font_object = MYFONT.render(chr(x+48), False, BLACK)
