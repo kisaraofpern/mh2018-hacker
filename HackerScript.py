@@ -130,13 +130,14 @@ def get_incremental_distance():
         return ((current_speed+get_current_speed())/2)*(tick_time/1000)
 
 def get_distance_to_caltech(location):
-    global current_location
+    if location.name == "CalTech":
+        return 0
 
-    if location.name = "highway_j_full":
+    if location.name == "highway_j_full":
         return location.distance
-    else
+    else:
         child_location = location_dict[location.left_link]
-        if location.left_link.find("lost"):
+        if location.left_link.find("lost") > -1:
             child_location = location_dict[location.right_link]
         return location.distance + get_distance_to_caltech(child_location)
 
@@ -188,7 +189,7 @@ def draw_all_stats():
     draw_text(speed_textbox, "Speed: " + str(current_speed) + " m/s")
     draw_text(total_dist_textbox, "Total Distance Traveled: " + str(total_distance) + "m")
     draw_text(turn_textbox, "")
-    draw_text(destination_distance_textbox, "Distance to CalTech: " + str(get_distance_to_caltech(current_location) + "m")
+    draw_text(destination_distance_textbox, "Distance to CalTech: " + str(get_distance_to_caltech(current_location)) + "m")
 
 # Initializations
 print "Conducting remaining initializations..."
