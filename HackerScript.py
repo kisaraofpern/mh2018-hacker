@@ -26,8 +26,8 @@ MAIN_RECT = pygame.Rect(0, 0, 1920, 980)
 ## Default values for class definitions
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-SCREENWIDTH = SCREEN.get_rect().width
-SCREENHEIGHT = SCREEN.get_rect().height
+SCREENWIDTH = SCREEN.get_width()
+SCREENHEIGHT = SCREEN.get_height()
 
 # Class Definitions
 class Location(object):
@@ -188,7 +188,6 @@ def flash_text(textbox, string, text_color=BLACK, font="Piboto", font_size=40):
 def draw_all_stats():
     draw_text(speed_textbox, "Speed: " + str(current_speed) + " m/s")
     draw_text(total_dist_textbox, "Total Distance Traveled: " + str(total_distance) + "m")
-    draw_text(turn_textbox, "")
     draw_text(destination_distance_textbox, "Distance to CalTech: " + str(get_distance_to_caltech(current_location)) + "m")
 
 # Initializations
@@ -297,16 +296,18 @@ location_dict["lost_highway_f"].right_link = "highway_f"
 location_dict["lost_highway_g"].left_link = "highway_g"
 location_dict["lost_highway_g"].right_link = "highway_g"
 
-print "Distances to CalTech"
-for k,v in location_dict.iteritems():
-    print get_distance_to_caltech(v)
-
 print "Initializing HUD..."
 # Defined values for the sizes of the textboxes in the HUD
 
+print SCREENHEIGHT
 TEXTBOX_WIDTH  = SCREENWIDTH/3
-TEXTBOX_HEIGHT = SCREENHEIGHT/5
-TEXTBOX_TOP    = SCREENHEIGHT*4/5
+TEXTBOX_HEIGHT = SCREENHEIGHT/6
+TEXTBOX_TOP    = SCREENHEIGHT - TEXTBOX_HEIGHT*1.5
+
+print TEXTBOX_TOP
+print TEXTBOX_HEIGHT
+print TEXTBOX_TOP+TEXTBOX_HEIGHT/2
+print TEXTBOX_TOP+TEXTBOX_HEIGHT
 
 speed_textbox = TextBox(
     0,
@@ -331,6 +332,7 @@ destination_distance_textbox = TextBox(
 
 change_location(current_location)
 draw_all_stats()
+draw_text(turn_textbox, "")
 update_display()
 
 pygame.time.set_timer(pygame.USEREVENT, tick_time)
@@ -343,14 +345,13 @@ while not done:
             done = True
 
         if event.type == pygame.USEREVENT:
-            total_distance += get_incremental_distance()
+            incremental_distance = get_incremental_distance()
+            total_distance += incremental_distance
             draw_all_stats()
             update_display()
 
             if not turn_time:
-                distance_traveled += get_incremental_distance()
-
-                #print("Not turning time! " + str(distance_traveled))
+                distance_traveled += incremental_distance
 
                 if distance_traveled >= current_location.distance:  #If there is no more distance left, set turn_time to True
                     turn_time = True
@@ -360,10 +361,12 @@ while not done:
 
                 current_speed = get_current_speed()  #Update current speed from RPM
 
-                if current_location.distance > distance_traveled:
-                    time_to_dest = ((current_location.distance - distance_traveled)/current_speed)
+                time_to_dest = 0
 
-                if time_to_dest < 10 and time_to_dest > 0:
+                if current_location.distance > distance_traveled:
+                    time_to_dest = ((float(current_location.distance) - float(distance_traveled))/float(current_speed))
+
+                if distance_traveled > (0.9 * current_location.distance) and not turn_time:
                     draw_text(turn_textbox, "TURN UPCOMING")
                     update_display()
 
