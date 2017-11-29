@@ -73,6 +73,7 @@ current_location = "highway_a"
 distance_traveled = 0  # In meters. The amount of distance traveled whilst in the current location
 current_speed = 6  # In meters/second. Calculated from the RPM of the bike
 time_to_dest = 0  # In seconds. Calculated from the distance remaining and the speed
+total_distance = 0 # In meters.
 dirty_rects = []
 
 print "Setting static values..."
@@ -120,6 +121,25 @@ def get_current_speed():
     # Placeholder function
     return rand.randrange(4, 8)
 
+def get_incremental_distance():
+    # Distance traveled since last tick,
+    # using a linear interpolation based on previous speed and current speed
+    if time_to_dest == 0:
+        return 0
+    else:
+        return ((current_speed+get_current_speed())/2)*(tick_time/1000)
+
+def get_distance_to_caltech(location):
+    global current_location
+
+    if location.name = "highway_j_full":
+        return location.distance
+    else
+        child_location = location_dict[location.left_link]
+        if location.left_link.find("lost"):
+            child_location = location_dict[location.right_link]
+        return location.distance + get_distance_to_caltech(child_location)
+
 # Transformations
 def change_location(location):
     global current_location
@@ -140,10 +160,13 @@ def draw_text(textbox, string, text_color=BLACK, font="Piboto", font_size=40):
     # Because it is dependent on `render`, `add_text` is NOT thread-safe:
     # Only a single thread can render text at a time.
     margin_left = 25
-    margin_top = 15
+    # margin_top to be calculated below
 
     textbox.font = pygame.font.SysFont(font, font_size, bold=True)
     this_text = textbox.font.render(string, True, text_color)
+
+    margin_top = (textbox.text.get_height() - this_text.get_height())/2
+
     textbox.text.fill(textbox.fill_color)
     textbox.text.blit(this_text, (margin_left, margin_top))
     SCREEN.blit(textbox.text, (textbox.left, textbox.top))
@@ -160,6 +183,12 @@ def flash_text(textbox, string, text_color=BLACK, font="Piboto", font_size=40):
         draw_text(textbox, string, text_color, font, font_size)
         update_display()
         pyclock.time.wait(250)
+
+def draw_all_stats():
+    draw_text(speed_textbox, "Speed: " + str(current_speed) + " m/s")
+    draw_text(total_dist_textbox, "Total Distance Traveled: " + str(total_distance) + "m")
+    draw_text(turn_textbox, "")
+    draw_text(destination_distance_textbox, "Distance to CalTech: " + str(get_distance_to_caltech(current_location) + "m")
 
 # Initializations
 print "Conducting remaining initializations..."
@@ -267,6 +296,10 @@ location_dict["lost_highway_f"].right_link = "highway_f"
 location_dict["lost_highway_g"].left_link = "highway_g"
 location_dict["lost_highway_g"].right_link = "highway_g"
 
+print "Distances to CalTech"
+for k,v in location_dict.iteritems():
+    print get_distance_to_caltech(v)
+
 print "Initializing HUD..."
 # Defined values for the sizes of the textboxes in the HUD
 
@@ -296,10 +329,7 @@ destination_distance_textbox = TextBox(
     TEXTBOX_HEIGHT)
 
 change_location(current_location)
-draw_text(speed_textbox, "Speed: 0 m/s")
-draw_text(total_dist_textbox, "Total Distance Traveled: 0m")
-draw_text(turn_textbox, "")
-draw_text(destination_distance_textbox, "Distance to CalTech: 1000m")
+draw_all_stats()
 update_display()
 
 pygame.time.set_timer(pygame.USEREVENT, tick_time)
@@ -312,8 +342,12 @@ while not done:
             done = True
 
         if event.type == pygame.USEREVENT:
+            total_distance += get_incremental_distance()
+            draw_all_stats()
+            update_display()
+
             if not turn_time:
-                distance_traveled += ((current_speed+get_current_speed())/2)*(tick_time/1000)  #Add distance traveled since last tick, using a linear interpolation based on previous speed and current speed
+                distance_traveled += get_incremental_distance()
 
                 #print("Not turning time! " + str(distance_traveled))
 
@@ -324,8 +358,6 @@ while not done:
                     print("Time to turn! " + str(turn_time))
 
                 current_speed = get_current_speed()  #Update current speed from RPM
-
-                time_to_dest = 0 #Distance remaining/speed in seconds.  Updates current ETA
 
                 if current_location.distance > distance_traveled:
                     time_to_dest = ((current_location.distance - distance_traveled)/current_speed)
