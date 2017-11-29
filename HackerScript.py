@@ -62,11 +62,12 @@ class TextBox(object):
 
 ## Global variables referenced in functions
 print "Setting default values for flags..."
+at_caltech = False
 done = False
+suppress = False
 turn_time = False
 turn_left = False
 turn_right = False
-suppress = False
 
 print "Setting baseline values for dynamic variables..."
 current_location = "highway_a"
@@ -75,6 +76,7 @@ current_speed = 6  # In meters/second. Calculated from the RPM of the bike
 time_to_dest = 0  # In seconds. Calculated from the distance remaining and the speed
 total_distance = 0 # In meters.
 dirty_rects = []
+spedometer_tick = 0 # In milliseconds.
 
 print "Setting static values..."
 tick_time = 1000  #In milliseconds. Sets the framerate of the game
@@ -104,6 +106,12 @@ def quit_button(input):
     pygame.quit()
     GPIO.cleanup()
 
+def update_spedometer_tick(input):
+    global spedometer_tick
+
+    print "Spedometer tick detected..."
+    spedometer_tick = CLOCK.tick()
+
 # Resets
 def reset_flags():
     global suppress, turn_left, turn_right, turn_time
@@ -118,7 +126,8 @@ def reset_values():
 
 # Calculations
 def get_current_speed():
-    # Placeholder function
+    pedal_circumference = 2
+    # return = pedal_circumference/(spedometer_tick/1000)
     return rand.randrange(4, 8)
 
 def get_incremental_distance():
@@ -350,7 +359,12 @@ while not done:
             draw_all_stats()
             update_display()
 
-            if not turn_time:
+            if current_location.name == "CalTech":
+                draw_text(turn_textbox, "YOU'VE MADE IT!")
+                update_display()
+                at_caltech = True
+
+            if not turn_time and not at_caltech:
                 distance_traveled += incremental_distance
 
                 if distance_traveled >= current_location.distance:  #If there is no more distance left, set turn_time to True
@@ -375,7 +389,7 @@ while not done:
                 if turn_right:
                     reset_flags()
 
-            if turn_time:
+            if turn_time and not at_caltech:
                 print("Turning time! " + str(turn_time))
                 if turn_left:
                     flash_text(turn_textbox, "LEFT TURN")
