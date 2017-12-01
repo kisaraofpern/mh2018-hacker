@@ -19,19 +19,19 @@ print "Initializing Pygame display..."
 SCREEN = pygame.display.set_mode((0,0))
 # pygame.display.toggle_fullscreen()
 
-# This Rectangle will be used in reference to updating SCREEN
-# after it has been enblittened.
-MAIN_RECT = pygame.Rect(0, 0, 1920, 980)
-
 ## Default values for class definitions
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 SCREENWIDTH = SCREEN.get_width()
 SCREENHEIGHT = SCREEN.get_height()
 
+# This Rect will be used in rference to updating SCREEN
+# after it has been enblittened.
+MAIN_RECT = pygame.Rect(0, 0, SCREENWIDTH, SCREENHEIGHT)
+
 # Class Definitions
 class Location(object):
-    """A Location is a node on the decision tree taht comprises the game."""
+    """A Location is a node on the decision tree that comprises the game."""
     def __init__(self, image, distance=100):
         self.image = pygame.image.load(image)
         self.image = pygame.transform.scale(self.image, (SCREENWIDTH, SCREENHEIGHT)).convert()
@@ -41,7 +41,6 @@ class Location(object):
         self.name = image.split(".")[0]
 
 class TextBox(object):
-    """ A textbox is comprised of its Surface (what is being rendered) and its Rect (where it is rendered). """
     """ A textbox is comprised of its Surface (what is being rendered) and its Rect (where it is rendered). """
     def __init__(self, left, top, width, height, fill_color=WHITE):
         self.left = left
@@ -72,11 +71,11 @@ turn_right = False
 print "Setting baseline values for dynamic variables..."
 current_location = "highway_a"
 distance_traveled = 0  # In meters. The amount of distance traveled whilst in the current location
-current_speed = 6  # In meters/second. Calculated from the RPM of the bike
+current_speed = 0  # In meters/second. Calculated from the RPM of the bike
 time_to_dest = 0  # In seconds. Calculated from the distance remaining and the speed
 total_distance = 0 # In meters.
 dirty_rects = []
-spedometer_tick = 0 # In milliseconds.
+speedometer_tick = 0 # In milliseconds.
 
 print "Setting static values..."
 tick_time = 1000  #In milliseconds. Sets the framerate of the game
@@ -106,11 +105,12 @@ def quit_button(input):
     pygame.quit()
     GPIO.cleanup()
 
-def update_spedometer_tick(input):
-    global spedometer_tick
+def update_speedometer_tick(input):
+    global speedometer_tick
 
-    print "Spedometer tick detected..."
-    spedometer_tick = CLOCK.tick()
+    print "speedometer tick detected!"
+    speedometer_tick = CLOCK.tick()
+    print(str(speedometer_tick)+" milliseconds since last tick...")
 
 # Resets
 def reset_flags():
@@ -127,7 +127,7 @@ def reset_values():
 # Calculations
 def get_current_speed():
     pedal_circumference = 2
-    # return = pedal_circumference/(spedometer_tick/1000)
+    # return = pedal_circumference/(speedometer_tick/1000)
     return rand.randrange(4, 8)
 
 def get_incremental_distance():
@@ -192,7 +192,7 @@ def flash_text(textbox, string, text_color=BLACK, font="Piboto", font_size=40):
     for x in range (0, 3):
         draw_text(textbox, string, text_color, font, font_size)
         update_display()
-        pyclock.time.wait(250)
+        pygame.time.wait(250)
 
 def draw_all_stats():
     draw_text(speed_textbox, "Speed: " + str(current_speed) + " m/s")
@@ -206,18 +206,16 @@ print "Initializing GPIO ports and callbacks..."
 # GPIO port declarations
 os.chdir("/home/pi/Hacker/")
 GPIO.setmode(GPIO.BOARD)
-GPIO.setup(11, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(13, GPIO.OUT)
-GPIO.setup(15, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(16, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
-# GPIO port initial states
-GPIO.output(13, True)
+GPIO.setup(11, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)  #Right button input
+GPIO.setup(13, GPIO.IN, pull_up_down=GPIO.PUD_UP)  #Speedometer input
+GPIO.setup(15, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) #Left button input
+GPIO.setup(16, GPIO.IN, pull_up_down=GPIO.PUD_UP) #Quit button input
 
 # GPIO port callback definitions
-GPIO.add_event_detect(16, GPIO.FALLING, callback=quit_button, bouncetime=500)
-GPIO.add_event_detect(11, GPIO.RISING, callback=right_button, bouncetime=500)
-GPIO.add_event_detect(15, GPIO.RISING, callback=left_button, bouncetime=500)
+GPIO.add_event_detect(16, GPIO.FALLING, callback=quit_button, bouncetime=500)  #Quit button input
+GPIO.add_event_detect(13, GPIO.RISING, callback=update_speedometer_tick, bouncetime=500)  #Speedometer input
+GPIO.add_event_detect(11, GPIO.RISING, callback=right_button, bouncetime=500)  #Right button input
+GPIO.add_event_detect(15, GPIO.RISING, callback=left_button, bouncetime=500)   #Left button input
 
 # Locations
 print "Initializing Locations..."
