@@ -2,6 +2,7 @@
 import time
 import os
 import random as rand
+import numpy
 import RPi.GPIO as GPIO
 import pygame
 from pygame.locals import *
@@ -28,6 +29,7 @@ SCREENHEIGHT = SCREEN.get_height()
 # This Rect will be used in rference to updating SCREEN
 # after it has been enblittened.
 MAIN_RECT = pygame.Rect(0, 0, SCREENWIDTH, SCREENHEIGHT)
+FPS = 60
 
 # Class Definitions
 class Location(object):
@@ -39,6 +41,10 @@ class Location(object):
         self.right_link = "0"
         self.distance = distance
         self.name = image.split(".")[0]
+
+        # This will be computed during initialization of the program,
+        # after initialization of the map.
+        self.distance_to_caltech = 0
 
 class TextBox(object):
     """ A textbox is comprised of its Surface (what is being rendered) and its Rect (where it is rendered). """
@@ -73,9 +79,11 @@ current_location = "highway_a"
 distance_traveled = 0  # In meters. The amount of distance traveled whilst in the current location
 current_speed = 0  # In meters/second. Calculated from the RPM of the bike
 time_to_dest = 0  # In seconds. Calculated from the distance remaining and the speed
-total_distance = 0 # In meters.
+distance_until_turn = 0 # In meters. The amount of distance remaining in the current distance.
 dirty_rects = []
-speedometer_tick = 0 # In milliseconds.
+speedometer_clock = 0 # In seconds. Time of last speedometer_tick.
+speedometer_tick = 0 # In seconds.
+speedometer_readings = [] # Accumulation of speedometer readings, so the average can be taken.
 
 print "Setting static values..."
 tick_time = 1000  #In milliseconds. Sets the framerate of the game
@@ -91,6 +99,9 @@ def left_button(input):
         turn_left = True
         suppress = True
 
+        event = pygame.event.Event(USEREVENT, action="TURN")
+        pygame.event.post(event)
+
 def right_button(input):
     global suppress
     global turn_right
@@ -100,17 +111,28 @@ def right_button(input):
         turn_right = True
         suppress = True
 
+        event = pygame.event.Event(USEREVENT, action="TURN")
+        pygame.event.post(event)
+
 def quit_button(input):
     print "Quit button detected! \n Quitting..."
     pygame.quit()
     GPIO.cleanup()
 
 def update_speedometer_tick(input):
+    global speedometer_clock
     global speedometer_tick
 
+    speedometer_cooldown = 3 # seconds
+
     print "speedometer tick detected!"
-    speedometer_tick = CLOCK.tick()
-    print(str(speedometer_tick)+" milliseconds since last tick...")
+    current_time = time.clock()
+
+    if (current_time - speedometer_clock > speedometer_cooldown):
+        speedometer_tick = current_time - speedometer_clock
+        speedometer_clock = current_time
+
+    print str(speedometer_tick) + " milliseconds since last tick..."
 
 # Resets
 def reset_flags():
@@ -123,11 +145,23 @@ def reset_flags():
 def reset_values():
     global distance_traveled
     distance_traveled = 0
+    distaince_until_turn = current_location.distance
 
 # Calculations
 def get_current_speed():
+    global speedometer_readings
     pedal_circumference = 2
-    # return = pedal_circumference/(speedometer_tick/1000)
+
+    # speed = float(pedal_circumference)/float(speedometer_tick)
+    #
+    # if len(speedometer_readings) > 5:
+    #     average_speed = numpy.average(speedometer_readings)
+    #     if (average_speed * 0.75) < speed < (average_speed * 1.25):
+    #         if len(speedometer_readings) = 10:
+    #             speedometer_readings.pop(0)
+    #         speedometer_readings.append(speed)
+    #
+    # return numpy.average(speedometer_readings)
     return rand.randrange(4, 8)
 
 def get_incremental_distance():
@@ -139,7 +173,7 @@ def get_incremental_distance():
         return ((current_speed+get_current_speed())/2)*(tick_time/1000)
 
 def get_distance_to_caltech(location):
-    if location.name == "CalTech":
+    if location.name == "CalTech" or location.name.find("lost") > -1:
         return 0
 
     if location.name == "highway_j_full":
@@ -149,6 +183,13 @@ def get_distance_to_caltech(location):
         if location.left_link.find("lost") > -1:
             child_location = location_dict[location.right_link]
         return location.distance + get_distance_to_caltech(child_location)
+
+def get_current_distance_from_caltech(location):
+    global distance_traveled
+    if location.name.find("lost") > -1:
+        return "???"
+
+    return str(location.distance_to_caltech - distance_traveled)
 
 # Transformations
 def change_location(location):
@@ -192,12 +233,34 @@ def flash_text(textbox, string, text_color=BLACK, font="Piboto", font_size=40):
     for x in range (0, 3):
         draw_text(textbox, string, text_color, font, font_size)
         update_display()
-        pygame.time.wait(250)
+        pygame.time.wait(1000)
 
 def draw_all_stats():
     draw_text(speed_textbox, "Speed: " + str(current_speed) + " m/s")
-    draw_text(total_dist_textbox, "Total Distance Traveled: " + str(total_distance) + "m")
-    draw_text(destination_distance_textbox, "Distance to CalTech: " + str(get_distance_to_caltech(current_location)) + "m")
+    draw_text(distance_until_turn_textbox, "Distance Until Turn: " + str(distance_until_turn) + "m")
+    draw_text(destination_distance_textbox, "Distance to CalTech: " + get_current_distance_to_caltech(current_location) + "m")
+
+def draw_left_or_right():
+    global done
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                done = True
+            if event.type == USEREVENT and event.action == "TURN":
+                return
+
+        draw_text(left_textbox, "LEFT?")
+        draw_text(right_textbox, "")
+        update_display()
+        pygame.time.wait(1000)
+
+        draw_text(left_textbox, "")
+        draw_text(right_textbox, "RIGHT?")
+        update_display()
+        pygame.time.wait(1000)
+
+        CLOCK.tick(FPS)
 
 # Initializations
 print "Conducting remaining initializations..."
@@ -303,6 +366,10 @@ location_dict["lost_highway_f"].right_link = "highway_f"
 location_dict["lost_highway_g"].left_link = "highway_g"
 location_dict["lost_highway_g"].right_link = "highway_g"
 
+print "Calculating map distances..."
+for k,v in location_dict.iteritems():
+    v.distance_to_caltech = get_distance_to_caltech(v)
+
 print "Initializing HUD..."
 # Defined values for the sizes of the textboxes in the HUD
 
@@ -321,7 +388,7 @@ speed_textbox = TextBox(
     TEXTBOX_TOP,
     TEXTBOX_WIDTH,
     TEXTBOX_HEIGHT/2)
-total_dist_textbox = TextBox(
+distance_until_turn_textbox = TextBox(
     0,
     TEXTBOX_TOP + TEXTBOX_HEIGHT/2,
     TEXTBOX_WIDTH,
@@ -337,12 +404,32 @@ destination_distance_textbox = TextBox(
     TEXTBOX_WIDTH,
     TEXTBOX_HEIGHT)
 
+# These textboxes are only drawn when it comes time to choose a turn direction.
+choose_textbox = TextBox(
+    TEXTBOX_WIDTH,
+    TEXTBOX_TOP,
+    TEXTBOX_WIDTH,
+    TEXTBOX_HEIGHT/2
+)
+left_textbox = TextBox(
+    TEXTBOX_WIDTH,
+    TEXTBOX_TOP + TEXTBOX_HEIGHT/2,
+    TEXTBOX_WIDTH/2
+    TEXTBOX_HEIGHT/2
+)
+right_textbox = TextBox(
+    TEXTBOX_WIDTH + TEXTBOX_WIDTH/2,
+    TEXTBOX_TOP + TEXTBOX_HEIGHT/2,
+    TEXTBOX_WIDTH/2,
+    TEXTBOX_HEIGHT/2
+)
+
 change_location(current_location)
+distance_until_turn = current_location.distance
 draw_all_stats()
 draw_text(turn_textbox, "")
 update_display()
 
-pygame.time.set_timer(pygame.USEREVENT, tick_time)
 print "Initialization complete!"
 
 ##Pygame runtime
@@ -351,60 +438,64 @@ while not done:
         if event.type == pygame.QUIT:
             done = True
 
-        if event.type == pygame.USEREVENT:
-            incremental_distance = get_incremental_distance()
-            total_distance += incremental_distance
-            draw_all_stats()
+    incremental_distance = get_incremental_distance()
+
+    if distance_until_turn - incremental_distance < 0:
+        distance_until_turn = 0
+    else:
+        distance_until_turn -= incremental_distance
+    draw_all_stats()
+    update_display()
+
+    if current_location.name == "CalTech":
+        draw_text(turn_textbox, "YOU'VE MADE IT!")
+        update_display()
+        at_caltech = True
+
+    if not turn_time and not at_caltech:
+        distance_traveled += incremental_distance
+
+        if distance_traveled >= current_location.distance:  #If there is no more distance left, set turn_time to True
+            turn_time = True
+            print("Time to turn! " + str(turn_time))
+            draw_text(choose_textbox, "CHOOSE:")
+            draw_left_or_right()
+
+        current_speed = get_current_speed()  #Update current speed from RPM
+
+        time_to_dest = 0
+
+        if current_location.distance > distance_traveled:
+            time_to_dest = ((float(current_location.distance) - float(distance_traveled))/float(current_speed))
+
+        if distance_traveled > (0.9 * current_location.distance) and not turn_time:
+            draw_text(turn_textbox, "TURN UPCOMING")
             update_display()
 
-            if current_location.name == "CalTech":
-                draw_text(turn_textbox, "YOU'VE MADE IT!")
-                update_display()
-                at_caltech = True
+        if turn_left or turn_right:
+            reset_flags()
 
-            if not turn_time and not at_caltech:
-                distance_traveled += incremental_distance
+    if turn_time and not at_caltech:
+        print("Turning time! " + str(turn_time))
+        if turn_left:
+            flash_text(turn_textbox, "LEFT TURN")
+            change_location(current_location.left_link)
+            draw_all_stats()
+            draw_text(turn_textbox, '')
+            update_display()
+            print "\nTurned left. New location is "+current_location.name
+            #time.sleep(.25)
+            reset_flags()
+            reset_values()
 
-                if distance_traveled >= current_location.distance:  #If there is no more distance left, set turn_time to True
-                    turn_time = True
-                    draw_text(turn_textbox, "LEFT OR RIGHT?")
-                    update_display()
-                    print("Time to turn! " + str(turn_time))
-
-                current_speed = get_current_speed()  #Update current speed from RPM
-
-                time_to_dest = 0
-
-                if current_location.distance > distance_traveled:
-                    time_to_dest = ((float(current_location.distance) - float(distance_traveled))/float(current_speed))
-
-                if distance_traveled > (0.9 * current_location.distance) and not turn_time:
-                    draw_text(turn_textbox, "TURN UPCOMING")
-                    update_display()
-
-                if turn_left:
-                    reset_flags()
-                if turn_right:
-                    reset_flags()
-
-            if turn_time and not at_caltech:
-                print("Turning time! " + str(turn_time))
-                if turn_left:
-                    flash_text(turn_textbox, "LEFT TURN")
-                    draw_text(turn_textbox, '')
-                    change_location(current_location.left_link)
-                    update_display()
-                    print "\nTurned left. New location is "+current_location.name
-                    #time.sleep(.25)
-                    reset_flags()
-                    reset_values()
-
-                if turn_right:
-                    flash_text(turn_textbox, "RIGHT TURN")
-                    draw_text(turn_textbox, '')
-                    change_location(current_location.right_link)
-                    update_display()
-                    print "\nTurned right. New location is "+current_location.name
-                    #time.sleep(.25)
-                    reset_flags()
-                    reset_values()
+        if turn_right:
+            flash_text(turn_textbox, "RIGHT TURN")
+            change_location(current_location.right_link)
+            draw_all_stats()
+            draw_text(turn_textbox, '')
+            update_display()
+            print "\nTurned right. New location is "+current_location.name
+            #time.sleep(.25)
+            reset_flags()
+            reset_values()
+    CLOCK.tick(FPS)
