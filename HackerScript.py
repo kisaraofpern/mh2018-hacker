@@ -20,6 +20,17 @@ print "Initializing Pygame display..."
 SCREEN = pygame.display.set_mode((0,0))
 # pygame.display.toggle_fullscreen()
 
+## Pin assignments
+LEFT_BUTTON_INPUT  = 16
+LEFT_BUTTON_LED    = 15
+RIGHT_BUTTON_INPUT = 13
+RIGHT_BUTTON_LED   = 11
+SPEEDOMETER        = 00
+
+## Default LED settings
+LEFT_BUTTON_LED_FLAG = True
+RIGHT_BUTTON_LED_FLAG = True
+
 ## Default values for class definitions
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -93,11 +104,16 @@ tick_time = 1000  #In milliseconds. Sets the framerate of the game
 def left_button(input):
     global suppress
     global turn_left
+    global LEFT_BUTTON_LED_FLAG
 
     if not suppress:
         print "Left button press detected"
         turn_left = True
         suppress = True
+        LEFT_BUTTON_LED_FLAG = not LEFT_BUTTON_LED_FLAG
+          # If it is on, turn it off.
+          # If it is off, turn it on.
+        GPIO.output(LEFT_BUTTON_LED, LEFT_BUTTON_LED_FLAG)
 
         event = pygame.event.Event(USEREVENT, action="TURN")
         pygame.event.post(event)
@@ -105,11 +121,16 @@ def left_button(input):
 def right_button(input):
     global suppress
     global turn_right
+    global RIGHT_BUTTON_LED_FLAG
 
     if not suppress:
         print "Right button press detected"
         turn_right = True
         suppress = True
+        RIGHT_BUTTON_LED_FLAG = not RIGHT_BUTTON_LED_FLAG
+          # If it is on, turn it off.
+          # If it is off, turn it on.
+        GPIO.output(RIGHT_BUTTON_LED, RIGHT_BUTTOD_LED_FLAG)
 
         event = pygame.event.Event(USEREVENT, action="TURN")
         pygame.event.post(event)
@@ -228,12 +249,15 @@ def update_display():
     pygame.display.update(dirty_rects)
     dirty_rects = []
 
-def flash_text(textbox, string, text_color=BLACK, font="Piboto", font_size=40):
+def flash_text(textbox, string, delay=1000, text_color=BLACK, font="Piboto", font_size=40):
     """Flashes the text in the display three times"""
     for x in range (0, 3):
+        draw_text(textbox, '', text_color, font, font_size)
+        update_display()
+        pygame.time.wait(delay)
         draw_text(textbox, string, text_color, font, font_size)
         update_display()
-        pygame.time.wait(1000)
+        pygame.time.wait(delay)
 
 def draw_all_stats():
     draw_text(speed_textbox, "Speed: " + str(current_speed) + " m/s")
@@ -269,16 +293,18 @@ print "Initializing GPIO ports and callbacks..."
 # GPIO port declarations
 os.chdir("/home/pi/Hacker/")
 GPIO.setmode(GPIO.BOARD)
-GPIO.setup(11, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)  #Right button input
-GPIO.setup(13, GPIO.IN, pull_up_down=GPIO.PUD_UP)  #Speedometer input
-GPIO.setup(15, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) #Left button input
-GPIO.setup(16, GPIO.IN, pull_up_down=GPIO.PUD_UP) #Quit button input
+GPIO.setup(LEFT_BUTTON_INPUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(LEFT_BUTTON_LED, GPIO.OUT)
+GPIO.setup(RIGHT_BUTTON_INPUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(RIGHT_BUTTON_LED, GPIO.OUT)
+
+GPIO.output(LEFT_BUTTON_LED, LEFT_BUTTON_LED_FLAG)
+GPIO.output(RIGHT_BUTTON_LED, RIGHT_BUTTON_LED_FLAG)
 
 # GPIO port callback definitions
-GPIO.add_event_detect(16, GPIO.FALLING, callback=quit_button, bouncetime=500)  #Quit button input
-GPIO.add_event_detect(13, GPIO.RISING, callback=update_speedometer_tick, bouncetime=500)  #Speedometer input
-GPIO.add_event_detect(11, GPIO.RISING, callback=right_button, bouncetime=500)  #Right button input
-GPIO.add_event_detect(15, GPIO.RISING, callback=left_button, bouncetime=500)   #Left button input
+# GPIO.add_event_detect(13, GPIO.RISING, callback=update_speedometer_tick, bouncetime=500)
+GPIO.add_event_detect(LEFT_BUTTON_INPUT, GPIO.RISING, callback=left_button, bouncetime=500)
+GPIO.add_event_detect(RIGHT_BUTTON_INPUT, GPIO.RISING, callback=right_button, bouncetime=500)
 
 # Locations
 print "Initializing Locations..."
@@ -448,7 +474,7 @@ while not done:
     update_display()
 
     if current_location.name == "CalTech":
-        draw_text(turn_textbox, "YOU'VE MADE IT!")
+        draw_text(turn_textbox, "YOU MADE IT!")
         update_display()
         at_caltech = True
 
