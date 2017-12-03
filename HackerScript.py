@@ -89,12 +89,10 @@ print "Setting baseline values for dynamic variables..."
 current_location = "highway_a"
 current_speed = 0  # In meters/second. Calculated from the RPM of the bike
 dirty_rects = []
-distance_traveled = 0  # In meters. The amount of distance traveled whilst in the current location
 distance_until_turn = 0 # In meters. The amount of distance remaining in the current distance.
 speedometer_clock = 0 # In seconds. Time of last speedometer_tick.
 speedometer_tick = 0 # In seconds.
 speedometer_readings = [] # Accumulation of speedometer readings, so the average can be taken.
-time_to_dest = 0  # In seconds. Calculated from the distance remaining and the speed
 
 # Functions
 # Callbacks for user actions
@@ -155,9 +153,7 @@ def reset_flags():
     turn_time = False
 
 def reset_values():
-    global distance_traveled
     global distance_until_turn
-    distance_traveled = 0
     distance_until_turn = current_location.distance
 
 # Calculations
@@ -180,9 +176,6 @@ def get_current_speed():
 def get_incremental_distance():
     # Distance traveled since last tick,
     # using a linear interpolation based on previous speed and current speed
-    if time_to_dest == 0:
-        return 0
-
     return ((current_speed+get_current_speed())/2)*(1/float(FPS))
 
 def get_distance_to_caltech(location):
@@ -198,11 +191,10 @@ def get_distance_to_caltech(location):
         return location.distance + get_distance_to_caltech(child_location)
 
 def get_current_distance_from_caltech(location):
-    global distance_traveled
     if location.name.find("lost") > -1:
         return "???"
 
-    return str(location.distance_to_caltech - distance_traveled)
+    return str(location.distance_to_caltech - location.distance + distance_until_turn)
 
 # Transformations
 def change_location(location):
@@ -456,6 +448,7 @@ update_display()
 print "Initialization complete!"
 
 def welcome():
+    global SCREENWIDTH, SCREENHEIGHT, BLACK, WHITE, current_speed
     instruction_textbox = TextBox(
         0,
         0,
@@ -483,21 +476,41 @@ def welcome():
 
     draw_text(message_textbox, "Getting up to speed...")
     draw_text(welcome_speed_textbox, "Speed: " + str(current_speed) + " m/s")
-    update_display
+    update_display()
 
     for x in range(0, 10):
+        draw_text(welcome_speed_textbox, "")
         draw_text(welcome_speed_textbox, "Speed: " + str(current_speed) + " m/s")
         if x > 6:
+            draw_text(message_textbox, "")
             draw_text(message_textbox, "Starting in " + str(10 - x) + " . . .")
-        update_display
+        update_display()
         pygame.time.wait(1000)
 
 def lost():
+    global current_location, distance_until_turn_textbox, destination_distance_textbox
+
     for x in range(0, 10):
+        draw_text(distance_until_turn_textbox, "")
         draw_text(distance_until_turn_textbox, "Rerouting in " + str(10 - x) + " seconds ...")
+        draw_text(destination_distance_textbox, "")
         draw_text(destination_distance_textbox, "Distance to CalTech: ??? m")
+        update_display()
         pygame.time.wait(1000)
     change_location(current_location.left_link)
+
+def handle_turn(turn):
+    global turn_textbox, current_location
+
+    flash_text(turn_textbox, turn.upper() + " TURN")
+    new_location = getattr(current_location, turn + "_link")
+    change_location(new_location)
+    draw_all_stats()
+    draw_text(turn_textbox, '')
+    update_display()
+    print "Turned " + turn + ". new location is " + current_location.name
+    reset_flags()
+    reset_values()
 
 def main_game():
     """Main game"""
@@ -505,9 +518,7 @@ def main_game():
     global current_location
     global current_speed
     global distance_until_turn
-    global distance_traveled
     global done
-    global time_to_dest
     global turn_time
 
     while not done:
@@ -519,6 +530,12 @@ def main_game():
             lost()
             continue
 
+        if current_location.name == "CalTech":
+            draw_text(turn_textbox, "YOU MADE IT!")
+            update_display()
+            at_caltech = True
+            continue
+
         incremental_distance = get_incremental_distance()
 
         if distance_until_turn - incremental_distance < 0:
@@ -528,25 +545,15 @@ def main_game():
         draw_all_stats()
         update_display()
 
-        if current_location.name == "CalTech":
-            draw_text(turn_textbox, "YOU MADE IT!")
-            update_display()
-            at_caltech = True
-
         if not turn_time and not at_caltech:
-            distance_traveled += incremental_distance
-
-            if distance_traveled >= current_location.distance:  #If there is no more distance left, set turn_time to True
+            if distance_until_turn == 0:
                 turn_time = True
                 print "Time to turn! " + str(turn_time)
+                continue
 
             current_speed = get_current_speed()  #Update current speed from RPM
-            time_to_dest = 0
 
-            if current_location.distance > distance_traveled:
-                time_to_dest = ((float(current_location.distance) - float(distance_traveled))/float(current_speed))
-
-            if distance_traveled > (0.9 * current_location.distance) and not turn_time:
+            if distance_until_turn < (0.1 * current_location.distance) and not turn_time:
                 draw_text(turn_textbox, "TURN UPCOMING")
                 update_display()
 
@@ -558,24 +565,10 @@ def main_game():
             draw_left_or_right()
             print "Turning time! " + str(turn_time)
             if turn_left:
-                flash_text(turn_textbox, "LEFT TURN")
-                change_location(current_location.left_link)
-                draw_all_stats()
-                draw_text(turn_textbox, '')
-                update_display()
-                print "\nTurned left. New location is "+current_location.name
-                reset_flags()
-                reset_values()
+                handle_turn("left")
 
             if turn_right:
-                flash_text(turn_textbox, "RIGHT TURN")
-                change_location(current_location.right_link)
-                draw_all_stats()
-                draw_text(turn_textbox, '')
-                update_display()
-                print "\nTurned right. New location is "+current_location.name
-                reset_flags()
-                reset_values()
+                handle_turn("right")
         CLOCK.tick(FPS)
 
 welcome()
