@@ -454,7 +454,7 @@ print "Initialization complete!"
 
 def welcome():
     """Enable our users to play CANNONBALL: THE GAME"""
-    global SCREENWIDTH, SCREENHEIGHT, BLACK, WHITE, current_speed
+    global SCREENWIDTH, SCREENHEIGHT, BLACK, WHITE, current_speed, current_location, turn_textbox, distance_until_turn
     instruction_textbox = TextBox(
         0,
         0,
@@ -478,7 +478,7 @@ def welcome():
     )
 
     SCREEN.fill(BLACK)
-    update_display()
+    pygame.display.flip()
     flash_text(instruction_textbox, "Pedal to Start!", 1000, WHITE)
 
     draw_text(instruction_textbox, "Pedal to Start!", WHITE)
