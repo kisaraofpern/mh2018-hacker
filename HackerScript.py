@@ -20,6 +20,11 @@ print "Initializing Pygame display..."
 SCREEN = pygame.display.set_mode((0, 0))
 # pygame.display.toggle_fullscreen()
 
+print "Rendering welcome screen..."
+welcome_textbox = TextBox(0, 0, SCREENWIDTH, SCREENHEIGHT, BLACK)
+draw_text(welcome_textbox, "CANNONBALL RUN: The Game", WHITE)
+
+
 ## Pin assignments
 LEFT_BUTTON_INPUT  = 16
 LEFT_BUTTON_LED    = 15
@@ -286,10 +291,6 @@ def get_turn():
 # Initializations
 print "Conducting remaining initializations..."
 
-print "Rendering welcome screen..."
-welcome_textbox = TextBox(0, 0, SCREENWIDTH, SCREENHEIGHT, BLACK)
-draw_text(welcome_textbox, "CANNONBALL RUN: The Game", WHITE)
-
 print "Initializing GPIO ports and callbacks..."
 # GPIO port declarations
 os.chdir("/home/pi/Hacker/")
@@ -478,7 +479,7 @@ def welcome():
         BLACK
     )
 
-    flash_text(instruction_textbox, "Pedal to Start!", WHITE)
+    flash_text(instruction_textbox, "Pedal to Start!", 1000, WHITE)
 
     draw_text(instruction_textbox, "Pedal to Start!", WHITE)
     draw_text(message_textbox, "Getting up to speed...", WHITE)
