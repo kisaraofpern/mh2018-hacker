@@ -150,6 +150,7 @@ def get_current_speed():
     return rand.randrange(4, 8)
 
 def get_incremental_distance():
+    global current_speed
     """Calculation for getting incremental distance since the last frame."""
     return ((current_speed+get_current_speed())/2)*(1/float(FPS))
 
@@ -225,6 +226,7 @@ def flash_text(textbox, string, delay=1000, text_color=BLACK, font="Piboto", fon
         pygame.time.wait(delay)
 
 def draw_all_stats():
+    global current_speed, distance_until_turn
     """Draws Speed, Distance Until Turn, and Distance to CalTech."""
     draw_text(speed_textbox, "Speed: " + str(current_speed) + " m/s")
     draw_text(distance_until_turn_textbox, "Distance Until Turn: " + str(distance_until_turn) + "m")
@@ -242,7 +244,9 @@ def lost(seconds):
         draw_text(destination_distance_textbox, "Distance to CalTech: ??? m")
         update_display()
         pygame.time.wait(1000)
+    draw_text(turn_textbox, "")
     change_location(current_location.left_link)
+    update_display()
 
 def handle_turn(turn):
     """Handles the turn after the player has input an action."""
@@ -287,6 +291,7 @@ def get_turn():
 print "Rendering welcome screen..."
 welcome_textbox = TextBox(0, 0, SCREENWIDTH, SCREENHEIGHT, BLACK)
 draw_text(welcome_textbox, "CANNONBALL RUN: The Game", WHITE)
+update_display()
 
 print "Conducting remaining initializations..."
 
@@ -480,6 +485,7 @@ def welcome():
     update_display()
 
     for x in range(0, 10):
+        current_speed = get_current_speed()
         draw_text(welcome_speed_textbox, "")
         draw_text(welcome_speed_textbox, "Speed: " + str(current_speed) + " m/s", WHITE)
         if x > 6:
