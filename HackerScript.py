@@ -226,7 +226,7 @@ def flash_text(textbox, string, delay=1000, text_color=BLACK, font="Piboto", fon
         pygame.time.wait(delay)
 
 def draw_all_stats():
-    global current_speed, distance_until_turn
+    global current_speed, distance_until_turn, speed_textbox, distance_until_turn_textbox, destination_distance_textbox
     """Draws Speed, Distance Until Turn, and Distance to CalTech."""
     draw_text(speed_textbox, "Speed: " + str(current_speed) + " m/s")
     draw_text(distance_until_turn_textbox, "Distance Until Turn: " + str(distance_until_turn) + "m")
@@ -550,8 +550,11 @@ def main_game():
 
 def success():
     """Do the stuff we do once we're at CalTech"""
-    global turn_textbox
+    global speed_textbox, distance_until_turn_textbox, destination_distance_textbox
+    draw_text(speed_textbox, "")
+    draw_text(distance_until_turn_textbox, "")
     draw_text(turn_textbox, "YOU MADE IT!")
+    draw_text(destination_distance_textbox, "")
     update_display()
 
     while True:
