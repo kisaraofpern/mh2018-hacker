@@ -246,7 +246,7 @@ def lost(seconds):
 
 def handle_turn(turn):
     """Handles the turn after the player has input an action."""
-    global turn_textbox, current_location
+    global current_location, distance_until_turn, turn_textbox
 
     flash_text(turn_textbox, turn.upper() + " TURN")
     new_location = getattr(current_location, turn + "_link")
@@ -445,12 +445,6 @@ right_textbox = TextBox(
     TEXTBOX_HEIGHT/2
 )
 
-change_location(current_location)
-distance_until_turn = current_location.distance
-draw_all_stats()
-draw_text(turn_textbox, "")
-update_display()
-
 print "Initialization complete!"
 
 def welcome():
@@ -493,6 +487,12 @@ def welcome():
             draw_text(message_textbox, "Starting in " + str(10 - x) + " . . .", WHITE)
         update_display()
         pygame.time.wait(1000)
+
+    change_location(current_location)
+    distance_until_turn = current_location.distance
+    draw_all_stats()
+    draw_text(turn_textbox, "")
+    update_display()
 
 def main_game():
     """Main game"""
