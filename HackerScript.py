@@ -20,11 +20,6 @@ print "Initializing Pygame display..."
 SCREEN = pygame.display.set_mode((0, 0))
 # pygame.display.toggle_fullscreen()
 
-print "Rendering welcome screen..."
-welcome_textbox = TextBox(0, 0, SCREENWIDTH, SCREENHEIGHT, BLACK)
-draw_text(welcome_textbox, "CANNONBALL RUN: The Game", WHITE)
-
-
 ## Pin assignments
 LEFT_BUTTON_INPUT  = 16
 LEFT_BUTTON_LED    = 15
@@ -289,6 +284,10 @@ def get_turn():
         pygame.time.wait(1000)
 
 # Initializations
+print "Rendering welcome screen..."
+welcome_textbox = TextBox(0, 0, SCREENWIDTH, SCREENHEIGHT, BLACK)
+draw_text(welcome_textbox, "CANNONBALL RUN: The Game", WHITE)
+
 print "Conducting remaining initializations..."
 
 print "Initializing GPIO ports and callbacks..."
