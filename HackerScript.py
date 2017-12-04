@@ -77,9 +77,6 @@ class TextBox(object):
         self.box = self.box.move(self.left, self.top)
 
 ## Global variables referenced in functions
-print "Setting default values for flags..."
-at_caltech = False
-
 print "Setting baseline values for dynamic variables..."
 current_location = "highway_a"
 current_speed = 0  # In meters/second. Calculated from the RPM of the bike
@@ -92,6 +89,7 @@ speedometer_readings = [] # Accumulation of speedometer readings, so the average
 # Functions
 # Callbacks for user actions
 def left_button(input):
+    """Callback function for pressing the left button"""
     global LEFT_BUTTON_LED_FLAG
 
     print "Left button press detected"
@@ -101,6 +99,7 @@ def left_button(input):
     pygame.event.post(event)
 
 def right_button(input):
+    """Callback function for pressing the right button"""
     global RIGHT_BUTTON_LED_FLAG
 
     print "Right button press detected"
@@ -110,11 +109,14 @@ def right_button(input):
     pygame.event.post(event)
 
 def quit_button(input):
+    """Callback function for pressing the quit button"""
     print "Quit button detected! \n Quitting..."
     pygame.quit()
     GPIO.cleanup()
 
 def update_speedometer_tick(input):
+    """Callback function for updating the speedometer tick and speedometer
+    clock, if enough time has passed."""
     global speedometer_clock
     global speedometer_tick
 
@@ -131,6 +133,7 @@ def update_speedometer_tick(input):
 
 # Calculations
 def get_current_speed():
+    """Calculation for getting the current speed"""
     global speedometer_readings
     pedal_circumference = 2
 
@@ -147,11 +150,11 @@ def get_current_speed():
     return rand.randrange(4, 8)
 
 def get_incremental_distance():
-    # Distance traveled since last tick,
-    # using a linear interpolation based on previous speed and current speed
+    """Calculation for getting incremental distance since the last frame."""
     return ((current_speed+get_current_speed())/2)*(1/float(FPS))
 
 def get_distance_to_caltech(location):
+    """Calculation for getting the distance to CalTech, from a given location."""
     if location.name == "CalTech" or location.name.find("lost") > -1:
         return 0
 
@@ -164,6 +167,9 @@ def get_distance_to_caltech(location):
         return location.distance + get_distance_to_caltech(child_location)
 
 def get_current_distance_from_caltech(location):
+    """Calculation for getting the ditance to CalTech.
+    Used during the main game loop.
+    Returns a string."""
     if location.name.find("lost") > -1:
         return "???"
 
@@ -171,6 +177,7 @@ def get_current_distance_from_caltech(location):
 
 # Transformations
 def change_location(location):
+    """Updates the current location and blits the screen."""
     global current_location
     global dirty_rects
     global SCREEN
@@ -202,6 +209,7 @@ def draw_text(textbox, string, text_color=BLACK, font="Piboto", font_size=40):
     dirty_rects.append(textbox.box)
 
 def update_display():
+    """Updates all of the dirty rectangles in the display."""
     global dirty_rects
     pygame.display.update(dirty_rects)
     dirty_rects = []
@@ -217,12 +225,14 @@ def flash_text(textbox, string, delay=1000, text_color=BLACK, font="Piboto", fon
         pygame.time.wait(delay)
 
 def draw_all_stats():
+    """Draws Speed, Distance Until Turn, and Distance to CalTech."""
     draw_text(speed_textbox, "Speed: " + str(current_speed) + " m/s")
     draw_text(distance_until_turn_textbox, "Distance Until Turn: " + str(distance_until_turn) + "m")
     draw_text(destination_distance_textbox, "Distance to CalTech: " + get_current_distance_from_caltech(current_location) + "m")
 
 # Helper methods for the game
 def lost(seconds):
+    """Manages the lost state for the game."""
     global current_location, distance_until_turn_textbox, destination_distance_textbox
 
     for x in range(0, seconds):
@@ -235,6 +245,7 @@ def lost(seconds):
     change_location(current_location.left_link)
 
 def handle_turn(turn):
+    """Handles the turn after the player has input an action."""
     global turn_textbox, current_location
 
     flash_text(turn_textbox, turn.upper() + " TURN")
@@ -247,7 +258,7 @@ def handle_turn(turn):
     distance_until_turn = current_location.distance
 
 def get_turn():
-"""Get the turn from the player action"""
+    """Get the turn from the player action"""
     draw_text(choose_textbox, "CHOOSE:")
 
     while True:
@@ -485,7 +496,6 @@ def welcome():
 
 def main_game():
     """Main game"""
-    global at_caltech
     global current_location
     global current_speed
     global distance_until_turn
