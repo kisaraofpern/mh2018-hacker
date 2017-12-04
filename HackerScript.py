@@ -477,6 +477,7 @@ def welcome():
         BLACK
     )
 
+    SCREEN.fill(BLACK)
     flash_text(instruction_textbox, "Pedal to Start!", 1000, WHITE)
 
     draw_text(instruction_textbox, "Pedal to Start!", WHITE)
