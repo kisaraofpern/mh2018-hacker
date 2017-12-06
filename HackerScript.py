@@ -314,12 +314,15 @@ GPIO.setup(LEFT_BUTTON_INPUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(LEFT_BUTTON_LED, GPIO.OUT)
 GPIO.setup(RIGHT_BUTTON_INPUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(RIGHT_BUTTON_LED, GPIO.OUT)
-GPIO.setup(SPEEDOMETER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+# GPIO.setup(SPEEDOMETER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 # GPIO port callback definitions
-GPIO.add_event_detect(SPEEDOMETER, GPIO.RISING, callback=update_speedometer_tick, bouncetime=500)
+# GPIO.add_event_detect(SPEEDOMETER, GPIO.RISING, callback=update_speedometer_tick, bouncetime=500)
 GPIO.add_event_detect(LEFT_BUTTON_INPUT, GPIO.FALLING, callback=left_button, bouncetime=500)
 GPIO.add_event_detect(RIGHT_BUTTON_INPUT, GPIO.FALLING, callback=right_button, bouncetime=500)
+
+GPIO.output(LEFT_BUTTON_LED, False)
+GPIO.output(RIGHT_BUTTON_LED, False)
 
 # Locations
 print "Initializing Locations..."
