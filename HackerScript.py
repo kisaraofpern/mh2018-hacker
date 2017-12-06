@@ -276,6 +276,8 @@ def get_turn():
     GPIO.output(LEFT_BUTTON_LED, True)
     GPIO.output(RIGHT_BUTTON_LED, True)
 
+    turn_text = ""
+
     while True:
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -288,7 +290,13 @@ def get_turn():
                     handle_turn("right")
                     return
 
-        flash_text(direction_textbox, "LEFT or RIGHT?")
+        draw_text(direction_textbox, turn_text)
+        update_display()
+        if turn_text:
+            turn_text = ""
+        else:
+            turn_text = "LEFT OR RIGHT?"
+        pygame.time.wait(500)s
 
 # Initializations
 print "Rendering welcome screen..."
@@ -306,9 +314,10 @@ GPIO.setup(LEFT_BUTTON_INPUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(LEFT_BUTTON_LED, GPIO.OUT)
 GPIO.setup(RIGHT_BUTTON_INPUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(RIGHT_BUTTON_LED, GPIO.OUT)
+GPIO.setup(SPEEDOMETER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 # GPIO port callback definitions
-# GPIO.add_event_detect(13, GPIO.RISING, callback=update_speedometer_tick, bouncetime=500)
+GPIO.add_event_detect(SPEEDOMETER, GPIO.RISING callback=update_speedometer_tick, bouncetime=500)
 GPIO.add_event_detect(LEFT_BUTTON_INPUT, GPIO.FALLING, callback=left_button, bouncetime=500)
 GPIO.add_event_detect(RIGHT_BUTTON_INPUT, GPIO.FALLING, callback=right_button, bouncetime=500)
 
