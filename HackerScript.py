@@ -27,10 +27,6 @@ RIGHT_BUTTON_INPUT = 13
 RIGHT_BUTTON_LED   = 11
 SPEEDOMETER        = 00
 
-## Default LED settings
-LEFT_BUTTON_LED_FLAG = True
-RIGHT_BUTTON_LED_FLAG = True
-
 ## Default values for class definitions
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -90,20 +86,14 @@ speedometer_readings = [] # Accumulation of speedometer readings, so the average
 # Callbacks for user actions
 def left_button(input):
     """Callback function for pressing the left button"""
-    global LEFT_BUTTON_LED_FLAG
-
     print "Left button press detected"
-    GPIO.output(LEFT_BUTTON_LED, LEFT_BUTTON_LED_FLAG)
 
     event = pygame.event.Event(USEREVENT, action="LEFT_TURN")
     pygame.event.post(event)
 
 def right_button(input):
     """Callback function for pressing the right button"""
-    global RIGHT_BUTTON_LED_FLAG
-
     print "Right button press detected"
-    GPIO.output(RIGHT_BUTTON_LED, RIGHT_BUTTON_LED_FLAG)
 
     event = pygame.event.Event(USEREVENT, action="RIGHT_TURN")
     pygame.event.post(event)
@@ -215,14 +205,18 @@ def update_display():
     pygame.display.update(dirty_rects)
     dirty_rects = []
 
-def flash_text(textbox, string, delay=1000, text_color=BLACK, font="Piboto", font_size=40):
+def flash_text(textbox, string, delay=500, text_color=BLACK, font="Piboto", font_size=40, LED=""):
     """Flashes the text in the display three times"""
     for x in range(0, 3):
         draw_text(textbox, '', text_color, font, font_size)
         update_display()
+        if LED:
+            GPIO.output(LED, False)
         pygame.time.wait(delay)
         draw_text(textbox, string, text_color, font, font_size)
         update_display()
+        if LED:
+            GPIO.output(LED, True)
         pygame.time.wait(delay)
 
 def draw_all_stats():
@@ -237,22 +231,36 @@ def lost(seconds):
     """Manages the lost state for the game."""
     global current_location, distance_until_turn_textbox, destination_distance_textbox
 
+    draw_text(speed_textbox, "")
+    draw_text(distance_until_turn_textbox, "")
+    draw_text(destination_distance_textbox, "")
+    draw_text(turn_textbox, "OH NO. WRONG TURN!")
+
     for x in range(0, seconds):
-        draw_text(distance_until_turn_textbox, "")
         draw_text(distance_until_turn_textbox, "Rerouting in " + str(10 - x) + " seconds ...")
-        draw_text(destination_distance_textbox, "")
         draw_text(destination_distance_textbox, "Distance to CalTech: ??? m")
         update_display()
         pygame.time.wait(1000)
-    draw_text(turn_textbox, "")
     change_location(current_location.left_link)
+    draw_text(turn_textbox, "")
     update_display()
 
 def handle_turn(turn):
     """Handles the turn after the player has input an action."""
-    global current_location, distance_until_turn, turn_textbox
+    global current_location, distance_until_turn, turn_textbox, LEFT_BUTTON_LED, RIGHT_BUTTON_LED
 
-    flash_text(turn_textbox, turn.upper() + " TURN")
+    turnLED = LEFT_BUTTON_LED
+    notTurnLED = RIGHT_BUTTON_LED
+    if(turn == "right"):
+        turnLED = RIGHT_BUTTON_LED
+        notTurnLED = LEFT_BUTTON_LED
+
+    GPIO.output(notTurnLED, False)
+
+    flash_text(turn_textbox, "TURNING " + turn.upper(), LED=turnLED)
+    SCREEN.fill(BLACK)
+    pygame.display.flip()
+    pygame.time.wait(250)
     new_location = getattr(current_location, turn + "_link")
     change_location(new_location)
     draw_all_stats()
@@ -263,7 +271,9 @@ def handle_turn(turn):
 
 def get_turn():
     """Get the turn from the player action"""
-    draw_text(choose_textbox, "CHOOSE:")
+    draw_text(choose_textbox, "TIME TO TURN!")
+    GPIO.output(LEFT_BUTTON_LED, True)
+    GPIO.output(RIGHT_BUTTON_LED, True)
 
     while True:
         for event in pygame.event.get():
@@ -277,15 +287,7 @@ def get_turn():
                     handle_turn("right")
                     return
 
-        draw_text(left_textbox, "LEFT?")
-        draw_text(right_textbox, "")
-        update_display()
-        pygame.time.wait(1000)
-
-        draw_text(left_textbox, "")
-        draw_text(right_textbox, "RIGHT?")
-        update_display()
-        pygame.time.wait(1000)
+        flash_text(direction_textbox, "LEFT or RIGHT?")
 
 # Initializations
 print "Rendering welcome screen..."
@@ -303,9 +305,6 @@ GPIO.setup(LEFT_BUTTON_INPUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(LEFT_BUTTON_LED, GPIO.OUT)
 GPIO.setup(RIGHT_BUTTON_INPUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(RIGHT_BUTTON_LED, GPIO.OUT)
-
-GPIO.output(LEFT_BUTTON_LED, LEFT_BUTTON_LED_FLAG)
-GPIO.output(RIGHT_BUTTON_LED, RIGHT_BUTTON_LED_FLAG)
 
 # GPIO port callback definitions
 # GPIO.add_event_detect(13, GPIO.RISING, callback=update_speedometer_tick, bouncetime=500)
@@ -437,16 +436,10 @@ choose_textbox = TextBox(
     TEXTBOX_WIDTH,
     TEXTBOX_HEIGHT/2
 )
-left_textbox = TextBox(
+direction_textbox = TextBox(
     TEXTBOX_WIDTH,
     TEXTBOX_TOP + TEXTBOX_HEIGHT/2,
-    TEXTBOX_WIDTH/2,
-    TEXTBOX_HEIGHT/2
-)
-right_textbox = TextBox(
-    TEXTBOX_WIDTH + TEXTBOX_WIDTH/2,
-    TEXTBOX_TOP + TEXTBOX_HEIGHT/2,
-    TEXTBOX_WIDTH/2,
+    TEXTBOX_WIDTH,
     TEXTBOX_HEIGHT/2
 )
 
@@ -479,7 +472,7 @@ def welcome():
 
     SCREEN.fill(BLACK)
     pygame.display.flip()
-    flash_text(instruction_textbox, "Pedal to Start!", 1000, WHITE)
+    flash_text(instruction_textbox, "Pedal to Start!", 500, WHITE)
 
     draw_text(instruction_textbox, "Pedal to Start!", WHITE)
     draw_text(message_textbox, "Getting up to speed...", WHITE)
