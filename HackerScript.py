@@ -37,7 +37,7 @@ BLACK = (0, 0, 0)
 SCREENWIDTH = SCREEN.get_width()
 SCREENHEIGHT = SCREEN.get_height()
 
-# This Rect will be used in rference to updating SCREEN
+# This Rect will be used in reference to updating SCREEN
 # after it has been enblittened.
 MAIN_RECT = pygame.Rect(0, 0, SCREENWIDTH, SCREENHEIGHT)
 FPS = 2
@@ -309,8 +309,8 @@ GPIO.output(RIGHT_BUTTON_LED, RIGHT_BUTTON_LED_FLAG)
 
 # GPIO port callback definitions
 # GPIO.add_event_detect(13, GPIO.RISING, callback=update_speedometer_tick, bouncetime=500)
-GPIO.add_event_detect(LEFT_BUTTON_INPUT, GPIO.RISING, callback=left_button, bouncetime=500)
-GPIO.add_event_detect(RIGHT_BUTTON_INPUT, GPIO.RISING, callback=right_button, bouncetime=500)
+GPIO.add_event_detect(LEFT_BUTTON_INPUT, GPIO.FALLING, callback=left_button, bouncetime=500)
+GPIO.add_event_detect(RIGHT_BUTTON_INPUT, GPIO.FALLING, callback=right_button, bouncetime=500)
 
 # Locations
 print "Initializing Locations..."
