@@ -296,7 +296,7 @@ def get_turn():
             turn_text = ""
         else:
             turn_text = "LEFT OR RIGHT?"
-        pygame.time.wait(500)s
+        pygame.time.wait(500)
 
 # Initializations
 print "Rendering welcome screen..."
