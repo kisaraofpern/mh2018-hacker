@@ -261,6 +261,7 @@ def handle_turn(turn):
     SCREEN.fill(BLACK)
     pygame.display.flip()
     pygame.time.wait(250)
+    GPIO.output(turnLED, False)
     new_location = getattr(current_location, turn + "_link")
     change_location(new_location)
     draw_all_stats()
