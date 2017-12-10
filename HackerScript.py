@@ -110,6 +110,11 @@ def update_speedometer_tick(input):
     global speedometer_clock
     global speedometer_tick
 
+    # This USEREVENT is only consumed during the welcome_screen_1 function.
+    # Oh well.
+    event = pygame.event.EVENT(USEREVENT, action="SPEEDOMETER_EVENT")
+    pygame.event.post(event)
+
     speedometer_cooldown = 3 # seconds
 
     print "speedometer tick detected!"
@@ -140,8 +145,8 @@ def get_current_speed():
     return rand.randrange(4, 8)
 
 def get_incremental_distance():
-    global current_speed
     """Calculation for getting incremental distance since the last frame."""
+    global current_speed
     return ((current_speed+get_current_speed())/2)*(1/float(FPS))
 
 def get_distance_to_caltech(location):
@@ -251,7 +256,7 @@ def handle_turn(turn):
 
     turnLED = LEFT_BUTTON_LED
     notTurnLED = RIGHT_BUTTON_LED
-    if(turn == "right"):
+    if turn == "right":
         turnLED = RIGHT_BUTTON_LED
         notTurnLED = LEFT_BUTTON_LED
 
@@ -300,7 +305,7 @@ def get_turn():
 
 # Initializations
 print "Rendering welcome screen..."
-welcome_textbox = TextBox(0, 0, SCREENWIDTH, SCREENHEIGHT, BLACK)
+welcome_textbox = TextBox(0, SCREENHEIGHT/16*3, SCREENWIDTH, SCREENHEIGHT/8, BLACK)
 draw_text(welcome_textbox, "CANNONBALL RUN: The Game", WHITE)
 update_display()
 
@@ -456,57 +461,153 @@ direction_textbox = TextBox(
     TEXTBOX_HEIGHT/2
 )
 
+# These textboxes are drawn during the welcome_screens.
+welcome_status_textbox = TextBox(
+    0,
+    SCREENHEIGHT/16*6,
+    SCREENWIDTH,
+    SCREENHEIGHT/8,
+    BLACK
+)
+
+target_speed_textbox = TextBox(
+    0,
+    SCREENHEIGHT/16*8,
+    SCREENWIDTH,
+    SCREENHEIGHT/8,
+    BLACK
+)
+
+encouragement_textbox = TextBox(
+    0,
+    SCREENHEIGHT/16*10,
+    SCREENWIDTH,
+    SCREENHEIGHT/8,
+    BLACK
+)
+
+welcome_speed_textbox = TextBox(
+    0,
+    SCREENHEIGHT/16*13,
+    SCREENWIDTH/3,
+    SCREENHEIGHT/8,
+    BLACK
+)
+
+welcome_timer_textbox = TextBox(
+    SCREENWIDTH/3*2,
+    SCREENHEIGHT/16*13,
+    SCREENWIDTH/3,
+    SCREENHEIGHT/8,
+    BLACK
+)
+
 print "Initialization complete!"
 
 def welcome():
-    """Enable our users to play CANNONBALL: THE GAME"""
-    global SCREENWIDTH, SCREENHEIGHT, BLACK, WHITE, current_speed, current_location, turn_textbox, distance_until_turn
-    instruction_textbox = TextBox(
-        0,
-        0,
-        SCREENWIDTH,
-        SCREENHEIGHT/3,
-        BLACK
-    )
-    message_textbox = TextBox(
-        0,
-        SCREENHEIGHT/3,
-        SCREENWIDTH,
-        SCREENHEIGHT/3,
-        BLACK
-    )
-    welcome_speed_textbox = TextBox(
-        0,
-        SCREENHEIGHT/3 * 2,
-        SCREENWIDTH,
-        SCREENHEIGHT/3,
-        BLACK
-    )
+    """"Enable our users to play CANNONBALL RUN: THE GAME"""
+    global current_location
+    global distance_until_turn
+    global turn_textbox
 
-    SCREEN.fill(BLACK)
-    pygame.display.flip()
-    flash_text(instruction_textbox, "Pedal to Start!", 500, WHITE)
+    welcome_screen_1()
 
-    draw_text(instruction_textbox, "Pedal to Start!", WHITE)
-    draw_text(message_textbox, "Getting up to speed...", WHITE)
-    draw_text(welcome_speed_textbox, "Speed: " + str(current_speed) + " m/s", WHITE)
-    update_display()
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT():
+                pygame.quit()
 
-    for x in range(0, 10):
-        current_speed = get_current_speed()
-        draw_text(welcome_speed_textbox, "")
-        draw_text(welcome_speed_textbox, "Speed: " + str(current_speed) + " m/s", WHITE)
-        if x > 6:
-            draw_text(message_textbox, "")
-            draw_text(message_textbox, "Starting in " + str(10 - x) + " . . .", WHITE)
+        welcome_screen_2()
+
+        start_game = welcome_screen_3()
+
+        if start_game:
+            change_location(current_location)
+            distance_until_turn = current_location.distance
+            draw_all_stats()
+            draw_text(turn_textbox, "")
+            update_display()
+            return
+
+def welcome_screen_1():
+    """Let our users know how to start CANNONBALL RUN: THE GAME"""
+    global welcome_status_textbox
+
+    status_text = ""
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT():
+                pygame.quit()
+            if event.type == USEREVENT and event.action == "SPEEDOMETER_EVENT":
+                return
+
+        draw_text(welcome_status_textbox, status_text, WHITE)
         update_display()
-        pygame.time.wait(1000)
+        if status_text:
+            status_text = ""
+        else:
+            status_text = "Pedal to Start..."
+        pygame.time.wait(500)
 
-    change_location(current_location)
-    distance_until_turn = current_location.distance
-    draw_all_stats()
-    draw_text(turn_textbox, "")
+def welcome_screen_2():
+    """Give our users some encouragement after they've started CANNONBALL RUN: THE GAME"""
+    global welcome_status_textbox
+    global target_speed_textbox
+    global encouragement_textbox
+    global welcome_speed_textbox
+    global current_speed
+
+    draw_text(welcome_status_textbox, "Getting Up to Speed....", WHITE)
+    draw_text(target_speed_textbox, "Target Speed: 10km/s", WHITE)
+    draw_text(encouragement_textbox, "YOU CAN DO IT!", WHITE)
+
+    draw_text(welcome_speed_textbox, "Speed: 0.0km/s", WHITE)
     update_display()
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT():
+                pygame.quit()
+
+        get_current_speed()
+
+        if current_speed > 10:
+            return
+
+        draw_text(welcome_speed_textbox, "Speed: " + str(current_speed) + "km/s", WHITE)
+        update_display()
+        CLOCK.tick(FPS)
+
+def welcome_screen_3():
+    global encouragement_textbox
+    global welcome_speed_textbox
+    global welcome_timer_textbox
+    global current_speed
+
+    draw_text(encouragement_textbox, "YOU DID IT!", WHITE)
+    update_display()
+
+    for x in range (0, 5):
+        current_speed = get_current_speed()
+
+        if current_speed < 10:
+            return False
+        draw_text(welcome_speed_textbox, "Speed: " + str(current_speed) + "km/s", WHITE)
+        draw_text(welcome_timer_textbox, "Game starts in " + str(5 - x) + ". . .", WHITE)
+        update_display()
+
+        pygame.time.wait(500)
+
+        current_speed = get_current_speed()
+        if current_speed < 10:
+            return False
+        draw_text(welcome_speed_textbox, "Speed: " + str(current_speed) + "km/s", WHITE)
+        update_display()
+
+        pygame.time.wait(500)
+
+    return True
 
 def main_game():
     """Main game"""
