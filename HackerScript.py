@@ -116,7 +116,7 @@ def update_speedometer_clock(input):
 
     # This USEREVENT is only consumed during the welcome_screen_1 function.
     # Oh well.
-    event = pygame.event.EVENT(USEREVENT, action="SPEEDOMETER_EVENT")
+    event = pygame.event.Event(USEREVENT, action="SPEEDOMETER_EVENT")
     pygame.event.post(event)
 
     speedometer_cooldown = 0.05 # seconds
@@ -127,8 +127,6 @@ def update_speedometer_clock(input):
 
     current_time = time.clock()
 
-    print 'Current time: ' + str(current_time)
-    print 'Speedometer clock: ' + str(speedometer_clock)
     if current_time - speedometer_clock > speedometer_cooldown:
         get_current_speed()
         speedometer_clock = current_time
@@ -144,13 +142,11 @@ def get_current_speed():
     speed = float(pedal_circumference)/float(time.clock() - speedometer_clock)
 
     print 'Speed: ' + str(round(speed, 2))
-    print 'Speedometer readings: ' + str(speedometer_readings)
 
     if len(speedometer_readings) < 5 and speed < 50:
         speedometer_readings.append(speed)
 
     average_speed = numpy.average(speedometer_readings)
-    print 'Average speed: ' + str(average_speed)
     if speed < 0:
         speed = 0
     elif speed > 50:
@@ -187,7 +183,7 @@ def get_current_distance_from_caltech(location):
     if location.name.find("lost") > -1:
         return "???"
 
-    return str(round(location.distance_to_caltech - location.distance + distance_until_turn, 2))
+    return str(round(location.distance_to_caltech - location.distance + distance_until_turn, 0))
 
 # Transformations
 def change_location(location):
@@ -245,8 +241,8 @@ def flash_text(textbox, string, delay=500, text_color=BLACK, font="Piboto", font
 def draw_all_stats():
     global current_speed, distance_until_turn, speed_textbox, distance_until_turn_textbox, destination_distance_textbox
     """Draws Speed, Distance Until Turn, and Distance to CalTech."""
-    draw_text(speed_textbox, "Speed: " + str(round(current_speed,2)) + " km/s")
-    draw_text(distance_until_turn_textbox, "Distance Until Turn: " + str(round(distance_until_turn, 2)) + "km")
+    draw_text(speed_textbox, "Speed: " + str(round(current_speed, 2)) + " km/s")
+    draw_text(distance_until_turn_textbox, "Distance Until Turn: " + str(round(distance_until_turn, 0)) + "km")
     draw_text(destination_distance_textbox, "Distance to CalTech: " + get_current_distance_from_caltech(current_location) + "km")
 
 # Helper methods for the game
@@ -254,7 +250,7 @@ def lost():
     """Manages the lost state for the game."""
     global current_location, distance_until_turn_textbox, destination_distance_textbox
 
-    lost_distance = random.randint(400,600)
+    lost_distance = rand.randint(400,600)
 
     draw_text(speed_textbox, "")
     draw_text(distance_until_turn_textbox, "")
@@ -285,7 +281,7 @@ def lost():
         else:
             lost_distance -= incremental_distance
 
-        draw_text(distance_until_turn_textbox, "Distance Until Next Location: " + str(round(lost_distance, 2)) + "km")
+        draw_text(distance_until_turn_textbox, "Distance Until Next Location: " + str(round(lost_distance, 0)) + "km")
         update_display()
         CLOCK.tick(FPS)
 
@@ -555,7 +551,7 @@ def welcome():
 
     while True:
         for event in pygame.event.get():
-            if event.type == pygame.QUIT():
+            if event.type == pygame.QUIT:
                 pygame.quit()
 
         welcome_screen_2()
@@ -578,7 +574,7 @@ def welcome_screen_1():
 
     while True:
         for event in pygame.event.get():
-            if event.type == pygame.QUIT():
+            if event.type == pygame.QUIT:
                 pygame.quit()
             if event.type == USEREVENT and event.action == "SPEEDOMETER_EVENT":
                 return
@@ -600,23 +596,24 @@ def welcome_screen_2():
     global current_speed
 
     draw_text(welcome_status_textbox, "Getting Up to Speed....", WHITE)
-    draw_text(target_speed_textbox, "Target Speed: 10km/s", WHITE)
+    draw_text(target_speed_textbox, "Target Speed: 15km/s", WHITE)
     draw_text(encouragement_textbox, "YOU CAN DO IT!", WHITE)
 
     draw_text(welcome_speed_textbox, "Speed: 0.0km/s", WHITE)
+    draw_text(welcome_timer_textbox, '')
     update_display()
 
     while True:
         for event in pygame.event.get():
-            if event.type == pygame.QUIT():
+            if event.type == pygame.QUIT:
                 pygame.quit()
 
         get_current_speed()
 
-        if current_speed > 10:
+        if current_speed > 15:
             return
 
-        draw_text(welcome_speed_textbox, "Speed: " + str(current_speed) + "km/s", WHITE)
+        draw_text(welcome_speed_textbox, "Speed: " + str(round(current_speed, 2)) + "km/s", WHITE)
         update_display()
         CLOCK.tick(FPS)
 
