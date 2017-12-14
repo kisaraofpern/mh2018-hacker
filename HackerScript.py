@@ -264,6 +264,8 @@ def lost():
         if lost_distance == 0:
             change_location(current_location.left_link)
             draw_text(turn_textbox, "")
+            distance_until_turn = current_location.distance
+            draw_all_stats()
             update_display()
             return
 
@@ -275,7 +277,8 @@ def lost():
         else:
             lost_distance -= incremental_distance
 
-        draw_text(distance_until_turn_textbox, "Distance Until Next Location: " + str(round(lost_distance, 0)) + "km")
+        draw_text(speed_textbox, "Speed: " + str(round(current_speed, 2)) + " km/s")
+        draw_text(distance_until_turn_textbox, "Distance To Waypoint: " + str(round(lost_distance, 0)) + "km")
         update_display()
         CLOCK.tick(FPS)
 
@@ -298,10 +301,7 @@ def handle_turn(turn):
     GPIO.output(turnLED, False)
     new_location = getattr(current_location, turn + "_link")
     change_location(new_location)
-    draw_all_stats()
-    draw_text(turn_textbox, '')
-    update_display()
-    print "Turned " + turn + ". new location is " + current_location.name
+    print "Turned " + turn + ". New location is " + current_location.name
     distance_until_turn = current_location.distance
 
 def get_turn():
@@ -567,6 +567,7 @@ def welcome():
 def welcome_screen_1():
     """Let our users know how to start CANNONBALL RUN: THE GAME"""
     status_text = ""
+    pygame.event.clear()
 
     while True:
         for event in pygame.event.get():
@@ -638,7 +639,7 @@ def welcome_screen_3():
 
         get_current_speed()
 
-        draw_text(welcome_speed_textbox, "Speed: " + str(current_speed) + "km/s", WHITE)
+        draw_text(welcome_speed_textbox, "Speed: " + str(round(current_speed, 2)) + "km/s", WHITE)
 
         if frame_counter == 6:
             frame_counter = 0
