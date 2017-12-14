@@ -126,7 +126,7 @@ def update_speedometer_clock(input):
     speedometer_t0 = speedometer_t1
     speedometer_t1 = time.clock()
 
-    pedal_circumference = 2
+    pedal_circumference = 8
     instantaneous_speed = float(pedal_circumference)/float(speedometer_t1 - speedometer_t0)
 
 # Calculations
@@ -145,7 +145,7 @@ def get_current_speed():
     elif speed > 50:
         speed = numpy.average(speedometer_readings)
 
-    if time.clock() - speedometer_t1 > 1:
+    if time.clock() - speedometer_t1 > .5:
         speed = 0
 
     if len(speedometer_readings) == 10:
