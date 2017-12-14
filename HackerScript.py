@@ -25,7 +25,8 @@ LEFT_BUTTON_INPUT  = 16
 LEFT_BUTTON_LED    = 15
 RIGHT_BUTTON_INPUT = 13
 RIGHT_BUTTON_LED   = 11
-SPEEDOMETER        = 00
+SPEEDOMETER        = 18
+MAGLOCK            = 24
 
 ## Default values for class definitions
 WHITE = (255, 255, 255)
@@ -41,7 +42,7 @@ FPS = 2
 # Class Definitions
 class Location(object):
     """A Location is a node on the decision tree that comprises the game."""
-    def __init__(self, image, distance=100):
+    def __init__(self, image, distance=500):
         self.image = pygame.image.load(image)
         self.image = pygame.transform.scale(self.image, (SCREENWIDTH, SCREENHEIGHT)).convert()
         self.left_link = "0"
@@ -78,8 +79,7 @@ current_location = "highway_a"
 current_speed = 0  # In meters/second. Calculated from the RPM of the bike
 dirty_rects = []
 distance_until_turn = 0 # In meters. The amount of distance remaining in the current distance.
-speedometer_clock = 0 # In seconds. Time of last speedometer_tick.
-speedometer_tick = 0 # In seconds. Time between ticks.
+speedometer_clock = 0 # In seconds. Time of last speedometer event.
 speedometer_readings = [] # Accumulation of speedometer readings, so the average can be taken.
 
 # Functions
@@ -104,50 +104,68 @@ def quit_button(input):
     pygame.quit()
     GPIO.cleanup()
 
-def update_speedometer_tick(input):
-    """Callback function for updating the speedometer tick and speedometer
+def release_maglock():
+    GPIO.output(MAGLOCK, True)
+    print("Maglock released!")
+
+def update_speedometer_clock(input):
+    """Callback function for updating the speedometer clock and speedometer
     clock, if enough time has passed."""
     global speedometer_clock
-    global speedometer_tick
+    print 'Speedometer event detected...'
 
     # This USEREVENT is only consumed during the welcome_screen_1 function.
     # Oh well.
     event = pygame.event.EVENT(USEREVENT, action="SPEEDOMETER_EVENT")
     pygame.event.post(event)
 
-    speedometer_cooldown = 3 # seconds
+    speedometer_cooldown = 0.05 # seconds
 
-    print "speedometer tick detected!"
+    if speedometer_clock == 0:
+        speedometer_clock = time.clock()
+        return
+
     current_time = time.clock()
 
+    print 'Current time: ' + str(current_time)
+    print 'Speedometer clock: ' + str(speedometer_clock)
     if current_time - speedometer_clock > speedometer_cooldown:
-        speedometer_tick = current_time - speedometer_clock
+        get_current_speed()
         speedometer_clock = current_time
-
-    print str(speedometer_tick) + " milliseconds since last tick..."
 
 # Calculations
 def get_current_speed():
     """Calculation for getting the current speed"""
     global speedometer_readings
+    global current_speed
+    print 'Getting current speed...'
     pedal_circumference = 2
 
-    # speed = float(pedal_circumference)/float(speedometer_tick)
-    #
-    # if len(speedometer_readings) > 5:
-    #     average_speed = numpy.average(speedometer_readings)
-    #     if (average_speed * 0.75) < speed < (average_speed * 1.25):
-    #         if len(speedometer_readings) = 10:
-    #             speedometer_readings.pop(0)
-    #         speedometer_readings.append(speed)
-    #
-    # return numpy.average(speedometer_readings)
-    return rand.randrange(4, 8)
+    speed = float(pedal_circumference)/float(time.clock() - speedometer_clock)
+
+    print 'Speed: ' + str(round(speed, 2))
+    print 'Speedometer readings: ' + str(speedometer_readings)
+
+    if len(speedometer_readings) < 5 and speed < 50:
+        speedometer_readings.append(speed)
+
+    average_speed = numpy.average(speedometer_readings)
+    print 'Average speed: ' + str(average_speed)
+    if speed < 0:
+        speed = 0
+    elif speed > 50:
+        speed = numpy.average(speedometer_readings)
+
+    if len(speedometer_readings) == 10:
+        speedometer_readings.pop(0)
+
+    speedometer_readings.append(speed)
+
+    current_speed = numpy.average(speedometer_readings)
 
 def get_incremental_distance():
     """Calculation for getting incremental distance since the last frame."""
-    global current_speed
-    return ((current_speed+get_current_speed())/2)*(1/float(FPS))
+    return current_speed/float(FPS)
 
 def get_distance_to_caltech(location):
     """Calculation for getting the distance to CalTech, from a given location."""
@@ -169,7 +187,7 @@ def get_current_distance_from_caltech(location):
     if location.name.find("lost") > -1:
         return "???"
 
-    return str(location.distance_to_caltech - location.distance + distance_until_turn)
+    return str(round(location.distance_to_caltech - location.distance + distance_until_turn, 2))
 
 # Transformations
 def change_location(location):
@@ -227,28 +245,49 @@ def flash_text(textbox, string, delay=500, text_color=BLACK, font="Piboto", font
 def draw_all_stats():
     global current_speed, distance_until_turn, speed_textbox, distance_until_turn_textbox, destination_distance_textbox
     """Draws Speed, Distance Until Turn, and Distance to CalTech."""
-    draw_text(speed_textbox, "Speed: " + str(current_speed) + " m/s")
-    draw_text(distance_until_turn_textbox, "Distance Until Turn: " + str(distance_until_turn) + "m")
-    draw_text(destination_distance_textbox, "Distance to CalTech: " + get_current_distance_from_caltech(current_location) + "m")
+    draw_text(speed_textbox, "Speed: " + str(round(current_speed,2)) + " km/s")
+    draw_text(distance_until_turn_textbox, "Distance Until Turn: " + str(round(distance_until_turn, 2)) + "km")
+    draw_text(destination_distance_textbox, "Distance to CalTech: " + get_current_distance_from_caltech(current_location) + "km")
 
 # Helper methods for the game
-def lost(seconds):
+def lost():
     """Manages the lost state for the game."""
     global current_location, distance_until_turn_textbox, destination_distance_textbox
+
+    lost_distance = random.randint(400,600)
 
     draw_text(speed_textbox, "")
     draw_text(distance_until_turn_textbox, "")
     draw_text(destination_distance_textbox, "")
     draw_text(turn_textbox, "OH NO. WRONG TURN!")
-
-    for x in range(0, seconds):
-        draw_text(distance_until_turn_textbox, "Rerouting in " + str(10 - x) + " seconds ...")
-        draw_text(destination_distance_textbox, "Distance to CalTech: ??? m")
-        update_display()
-        pygame.time.wait(1000)
-    change_location(current_location.left_link)
-    draw_text(turn_textbox, "")
     update_display()
+
+    pygame.time.wait(500)
+    draw_text(turn_textbox, "Rerouting...")
+    draw_text(destination_distance_textbox, "Distance to CalTech: ??? km")
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+
+        if lost_distance == 0:
+            change_location(current_location.left_link)
+            draw_text(turn_textbox, "")
+            update_display
+            return
+
+        get_current_speed()
+        incremental_distance = get_incremental_distance()
+
+        if lost_distance - incremental_distance < 0:
+            lost_distance = 0
+        else:
+            lost_distance -= incremental_distance
+
+        draw_text(distance_until_turn_textbox, "Distance Until Next Location: " + str(round(lost_distance, 2)) + "km")
+        update_display()
+        CLOCK.tick(FPS)
 
 def handle_turn(turn):
     """Handles the turn after the player has input an action."""
@@ -319,15 +358,17 @@ GPIO.setup(LEFT_BUTTON_INPUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(LEFT_BUTTON_LED, GPIO.OUT)
 GPIO.setup(RIGHT_BUTTON_INPUT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(RIGHT_BUTTON_LED, GPIO.OUT)
-# GPIO.setup(SPEEDOMETER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(SPEEDOMETER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(MAGLOCK, GPIO.OUT)
 
 # GPIO port callback definitions
-# GPIO.add_event_detect(SPEEDOMETER, GPIO.RISING, callback=update_speedometer_tick, bouncetime=500)
+GPIO.add_event_detect(SPEEDOMETER, GPIO.FALLING, callback=update_speedometer_clock, bouncetime=500)
 GPIO.add_event_detect(LEFT_BUTTON_INPUT, GPIO.FALLING, callback=left_button, bouncetime=500)
 GPIO.add_event_detect(RIGHT_BUTTON_INPUT, GPIO.FALLING, callback=right_button, bouncetime=500)
 
 GPIO.output(LEFT_BUTTON_LED, False)
 GPIO.output(RIGHT_BUTTON_LED, False)
+GPIO.output(MAGLOCK, False)
 
 # Locations
 print "Initializing Locations..."
@@ -589,7 +630,7 @@ def welcome_screen_3():
     update_display()
 
     for x in range (0, 5):
-        current_speed = get_current_speed()
+        get_current_speed()
 
         if current_speed < 10:
             return False
@@ -599,7 +640,7 @@ def welcome_screen_3():
 
         pygame.time.wait(500)
 
-        current_speed = get_current_speed()
+        get_current_speed()
         if current_speed < 10:
             return False
         draw_text(welcome_speed_textbox, "Speed: " + str(current_speed) + "km/s", WHITE)
@@ -620,6 +661,8 @@ def main_game():
             if event.type == pygame.QUIT:
                 pygame.quit()
 
+        get_current_speed()
+
         ## If we're at CalTech, get out of the main game loop.
         if current_location.name == "CalTech":
             return
@@ -627,8 +670,7 @@ def main_game():
         ## If we're lost, iterate through the lost loop for x seconds.
         ## Then advance to the next iteration of the game loop.
         if current_location.name.find("lost") > -1:
-            lost(10)
-            CLOCK.tick(FPS)
+            lost()
             continue
 
         ## If we've covered the distance for this location, get the turn.
@@ -639,7 +681,6 @@ def main_game():
             continue
 
         ## If we haven't gotten to the turn yet, update our stats.
-        current_speed = get_current_speed()
         incremental_distance = get_incremental_distance()
 
         if distance_until_turn - incremental_distance < 0:
@@ -664,11 +705,14 @@ def success():
     draw_text(destination_distance_textbox, "")
     update_display()
 
+    release_maglock()
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
 
+        get_current_speed()
         CLOCK.tick(FPS)
 
 welcome()
