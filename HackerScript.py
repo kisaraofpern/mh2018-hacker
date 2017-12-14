@@ -112,7 +112,7 @@ def update_speedometer_clock(input):
     """Callback function for updating the speedometer clock and speedometer
     clock, if enough time has passed."""
     global speedometer_t1, speedometer_t0, instantaneous_speed
-    print 'Speedometer event detected...'
+    # print 'Speedometer event detected...'
 
     # This USEREVENT is only consumed during the welcome_screen_1 function.
     # Oh well.
@@ -126,8 +126,9 @@ def update_speedometer_clock(input):
     speedometer_t0 = speedometer_t1
     speedometer_t1 = time.clock()
 
-    pedal_circumference = 2
+    pedal_circumference = 4
     instantaneous_speed = float(pedal_circumference)/float(speedometer_t1 - speedometer_t0)
+    # print 'Instantaneous_speed: ' + str(instantaneous_speed)
 
 # Calculations
 def get_current_speed():
@@ -145,7 +146,7 @@ def get_current_speed():
     elif speed > 50:
         speed = numpy.average(speedometer_readings)
 
-    if time.clock() - speedometer_t1 > 1:
+    if time.clock() - speedometer_t1 > .1:
         speed = 0
 
     if len(speedometer_readings) == 10:
@@ -601,7 +602,7 @@ def welcome_screen_2():
 
         get_current_speed()
 
-        if current_speed > 15:
+        if current_speed > 10:
             return
 
         draw_text(welcome_speed_textbox, "Speed: " + str(round(current_speed, 2)) + "km/s", WHITE)
@@ -626,7 +627,7 @@ def welcome_screen_3():
         # If the speed drops below the target,
         # exit this loop.
         # Returning False will bring us back to the "YOU CAN DO IT" message.
-        if current_speed < 15:
+        if current_speed < 10:
             return False
 
         # If the target speed has been maintained for 5 seconds,
@@ -642,9 +643,11 @@ def welcome_screen_3():
         if frame_counter == 6:
             frame_counter = 0
             second_counter += 1
-            draw_text(welcome_timer_textbox, "Game starts in " + str(5 - x) + ". . .", WHITE)
-
+            draw_text(welcome_timer_textbox, "Game starts in " + str(5 - second_counter) + ". . .", WHITE)
+        
         update_display()
+        frame_counter += 1
+        CLOCK.tick(FPS)
 
 def main_game():
     """Main game"""
