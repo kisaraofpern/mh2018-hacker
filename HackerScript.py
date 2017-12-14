@@ -81,9 +81,7 @@ dirty_rects = []
 distance_until_turn = 0 # In meters. The amount of distance remaining in the current distance.
 
 # Speedometer-related variables.
-speedometer_t1 = 0        # Time of the most recent speedometer event.
-speedometer_t0 = 0        # Time of the second-most recent speedometer event.
-instantaneous_speed = 0   # Speed that is calculated at each speedometer event.
+speedometer_ticks = 0     # Number of speedometer_ticks since last frame.
 speedometer_readings = [0] # Accumulation of speedometer readings, so the average can be taken.
 
 # Functions
@@ -108,10 +106,10 @@ def quit_button(input):
     pygame.quit()
     GPIO.cleanup()
 
-def update_speedometer_clock(input):
+def update_speedometer_tick_count(input):
     """Callback function for updating the speedometer clock and speedometer
     clock, if enough time has passed."""
-    global speedometer_t1, speedometer_t0, instantaneous_speed
+    global speedometer_ticks
     print 'Speedometer event detected...'
 
     # This USEREVENT is only consumed during the welcome_screen_1 function.
@@ -119,23 +117,17 @@ def update_speedometer_clock(input):
     event = pygame.event.Event(USEREVENT, action="SPEEDOMETER_EVENT")
     pygame.event.post(event)
 
-    if speedometer_t1 == 0:
-        speedometer_t1 = time.clock()
-        return
-
-    speedometer_t0 = speedometer_t1
-    speedometer_t1 = time.clock()
-
-    pedal_circumference = 2
-    instantaneous_speed = float(pedal_circumference)/float(speedometer_t1 - speedometer_t0)
+    speedometer_ticks += 1
 
 # Calculations
 def get_current_speed():
     """Calculation for getting the current speed"""
     global speedometer_readings
     global current_speed
+    global speedometer_ticks
+    pedal_circumference = 2
 
-    speed = instantaneous_speed
+    speed = float(speedometer_ticks * pedal_circumference)*float(FPS)
 
     if len(speedometer_readings) < 5 and speed < 50:
         speedometer_readings.append(speed)
@@ -151,6 +143,7 @@ def get_current_speed():
     speedometer_readings.append(speed)
 
     current_speed = numpy.average(speedometer_readings)
+    speedometer_ticks = 0
 
 def get_incremental_distance():
     """Calculation for getting incremental distance since the last frame."""
@@ -353,7 +346,7 @@ GPIO.setup(SPEEDOMETER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(MAGLOCK, GPIO.OUT)
 
 # GPIO port callback definitions
-GPIO.add_event_detect(SPEEDOMETER, GPIO.FALLING, callback=update_speedometer_clock, bouncetime=1)
+GPIO.add_event_detect(SPEEDOMETER, GPIO.FALLING, callback=update_speedometer_tick_count, bouncetime=1)
 GPIO.add_event_detect(LEFT_BUTTON_INPUT, GPIO.FALLING, callback=left_button, bouncetime=500)
 GPIO.add_event_detect(RIGHT_BUTTON_INPUT, GPIO.FALLING, callback=right_button, bouncetime=500)
 
