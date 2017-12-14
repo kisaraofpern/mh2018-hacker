@@ -145,6 +145,9 @@ def get_current_speed():
     elif speed > 50:
         speed = numpy.average(speedometer_readings)
 
+    if time.clock() - speedometer_t1 > 1:
+        speed = 0
+
     if len(speedometer_readings) == 10:
         speedometer_readings.pop(0)
 
