@@ -37,7 +37,7 @@ SCREENHEIGHT = SCREEN.get_height()
 # This Rect will be used in reference to updating SCREEN
 # after it has been enblittened.
 MAIN_RECT = pygame.Rect(0, 0, SCREENWIDTH, SCREENHEIGHT)
-FPS = 2
+FPS = 6
 
 # Class Definitions
 class Location(object):
@@ -79,8 +79,12 @@ current_location = "highway_a"
 current_speed = 0  # In meters/second. Calculated from the RPM of the bike
 dirty_rects = []
 distance_until_turn = 0 # In meters. The amount of distance remaining in the current distance.
-speedometer_clock = 0 # In seconds. Time of last speedometer event.
-speedometer_readings = [] # Accumulation of speedometer readings, so the average can be taken.
+
+# Speedometer-related variables.
+speedometer_t1 = 0        # Time of the most recent speedometer event.
+speedometer_t0 = 0        # Time of the second-most recent speedometer event.
+instantaneous_speed = 0   # Speed that is calculated at each speedometer event.
+speedometer_readings = [0] # Accumulation of speedometer readings, so the average can be taken.
 
 # Functions
 # Callbacks for user actions
@@ -104,14 +108,10 @@ def quit_button(input):
     pygame.quit()
     GPIO.cleanup()
 
-def release_maglock():
-    GPIO.output(MAGLOCK, True)
-    print("Maglock released!")
-
 def update_speedometer_clock(input):
     """Callback function for updating the speedometer clock and speedometer
     clock, if enough time has passed."""
-    global speedometer_clock
+    global speedometer_t1, speedometer_t0, instantaneous_speed
     print 'Speedometer event detected...'
 
     # This USEREVENT is only consumed during the welcome_screen_1 function.
@@ -119,34 +119,27 @@ def update_speedometer_clock(input):
     event = pygame.event.Event(USEREVENT, action="SPEEDOMETER_EVENT")
     pygame.event.post(event)
 
-    speedometer_cooldown = 0.05 # seconds
-
-    if speedometer_clock == 0:
-        speedometer_clock = time.clock()
+    if speedometer_t1 == 0:
+        speedometer_t1 = time.clock()
         return
 
-    current_time = time.clock()
+    speedometer_t0 = speedometer_t1
+    speedometer_t1 = time.clock()
 
-    if current_time - speedometer_clock > speedometer_cooldown:
-        get_current_speed()
-        speedometer_clock = current_time
+    pedal_circumference = 2
+    instantaneous_speed = float(pedal_circumference)/float(speedometer_t1 - speedometer_t0)
 
 # Calculations
 def get_current_speed():
     """Calculation for getting the current speed"""
     global speedometer_readings
     global current_speed
-    print 'Getting current speed...'
-    pedal_circumference = 2
 
-    speed = float(pedal_circumference)/float(time.clock() - speedometer_clock)
-
-    print 'Speed: ' + str(round(speed, 2))
+    speed = instantaneous_speed
 
     if len(speedometer_readings) < 5 and speed < 50:
         speedometer_readings.append(speed)
 
-    average_speed = numpy.average(speedometer_readings)
     if speed < 0:
         speed = 0
     elif speed > 50:
@@ -190,7 +183,6 @@ def change_location(location):
     """Updates the current location and blits the screen."""
     global current_location
     global dirty_rects
-    global SCREEN
     current_location = location_dict[location]
     SCREEN.fill(BLACK)
     SCREEN.blit(current_location.image, (0, 0))
@@ -199,7 +191,6 @@ def change_location(location):
 def draw_text(textbox, string, text_color=BLACK, font="Piboto", font_size=40):
     """Draws text onto a new Surface and returns that Surface"""
     global dirty_rects
-    global SCREEN
     # pygame.font.Font.render draws text on a new Surface and returns
     # that surface.
     # draw_text will apply that surface to the textbox.
@@ -239,7 +230,6 @@ def flash_text(textbox, string, delay=500, text_color=BLACK, font="Piboto", font
         pygame.time.wait(delay)
 
 def draw_all_stats():
-    global current_speed, distance_until_turn, speed_textbox, distance_until_turn_textbox, destination_distance_textbox
     """Draws Speed, Distance Until Turn, and Distance to CalTech."""
     draw_text(speed_textbox, "Speed: " + str(round(current_speed, 2)) + " km/s")
     draw_text(distance_until_turn_textbox, "Distance Until Turn: " + str(round(distance_until_turn, 0)) + "km")
@@ -248,7 +238,7 @@ def draw_all_stats():
 # Helper methods for the game
 def lost():
     """Manages the lost state for the game."""
-    global current_location, distance_until_turn_textbox, destination_distance_textbox
+    global current_location
 
     lost_distance = rand.randint(400,600)
 
@@ -270,7 +260,7 @@ def lost():
         if lost_distance == 0:
             change_location(current_location.left_link)
             draw_text(turn_textbox, "")
-            update_display
+            update_display()
             return
 
         get_current_speed()
@@ -287,7 +277,7 @@ def lost():
 
 def handle_turn(turn):
     """Handles the turn after the player has input an action."""
-    global current_location, distance_until_turn, turn_textbox, LEFT_BUTTON_LED, RIGHT_BUTTON_LED
+    global current_location, distance_until_turn
 
     turnLED = LEFT_BUTTON_LED
     notTurnLED = RIGHT_BUTTON_LED
@@ -321,7 +311,7 @@ def get_turn():
     while True:
         for event in pygame.event.get():
             if event.type == QUIT:
-                pygame.QUIT
+                pygame.quit()
             if event.type == USEREVENT:
                 if event.action == 'LEFT_TURN':
                     handle_turn("left")
@@ -337,6 +327,11 @@ def get_turn():
         else:
             turn_text = "LEFT OR RIGHT?"
         pygame.time.wait(500)
+
+def release_maglock():
+    """Releases the maglock."""
+    GPIO.output(MAGLOCK, True)
+    print("Maglock released!")
 
 # Initializations
 print "Rendering welcome screen..."
@@ -358,7 +353,7 @@ GPIO.setup(SPEEDOMETER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(MAGLOCK, GPIO.OUT)
 
 # GPIO port callback definitions
-GPIO.add_event_detect(SPEEDOMETER, GPIO.FALLING, callback=update_speedometer_clock, bouncetime=500)
+GPIO.add_event_detect(SPEEDOMETER, GPIO.FALLING, callback=update_speedometer_clock, bouncetime=1)
 GPIO.add_event_detect(LEFT_BUTTON_INPUT, GPIO.FALLING, callback=left_button, bouncetime=500)
 GPIO.add_event_detect(RIGHT_BUTTON_INPUT, GPIO.FALLING, callback=right_button, bouncetime=500)
 
@@ -545,7 +540,6 @@ def welcome():
     """"Enable our users to play CANNONBALL RUN: THE GAME"""
     global current_location
     global distance_until_turn
-    global turn_textbox
 
     welcome_screen_1()
 
@@ -568,8 +562,6 @@ def welcome():
 
 def welcome_screen_1():
     """Let our users know how to start CANNONBALL RUN: THE GAME"""
-    global welcome_status_textbox
-
     status_text = ""
 
     while True:
@@ -589,10 +581,6 @@ def welcome_screen_1():
 
 def welcome_screen_2():
     """Give our users some encouragement after they've started CANNONBALL RUN: THE GAME"""
-    global welcome_status_textbox
-    global target_speed_textbox
-    global encouragement_textbox
-    global welcome_speed_textbox
     global current_speed
 
     draw_text(welcome_status_textbox, "Getting Up to Speed....", WHITE)
@@ -618,34 +606,42 @@ def welcome_screen_2():
         CLOCK.tick(FPS)
 
 def welcome_screen_3():
-    global encouragement_textbox
-    global welcome_speed_textbox
-    global welcome_timer_textbox
+    """Final welcome screen. Counts down for five seconds if the target speed is held"""
     global current_speed
 
     draw_text(encouragement_textbox, "YOU DID IT!", WHITE)
     update_display()
 
-    for x in range (0, 5):
+    frame_counter = 6
+    second_counter = 0
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+
+        # If the speed drops below the target,
+        # exit this loop.
+        # Returning False will bring us back to the "YOU CAN DO IT" message.
+        if current_speed < 15:
+            return False
+
+        # If the target speed has been maintained for 5 seconds,
+        # exit this loop.
+        # Returning True will advance us to the main game.
+        if second_counter == 5:
+            return True
+
         get_current_speed()
 
-        if current_speed < 10:
-            return False
         draw_text(welcome_speed_textbox, "Speed: " + str(current_speed) + "km/s", WHITE)
-        draw_text(welcome_timer_textbox, "Game starts in " + str(5 - x) + ". . .", WHITE)
+
+        if frame_counter == 6:
+            frame_counter = 0
+            second_counter += 1
+            draw_text(welcome_timer_textbox, "Game starts in " + str(5 - x) + ". . .", WHITE)
+
         update_display()
-
-        pygame.time.wait(500)
-
-        get_current_speed()
-        if current_speed < 10:
-            return False
-        draw_text(welcome_speed_textbox, "Speed: " + str(current_speed) + "km/s", WHITE)
-        update_display()
-
-        pygame.time.wait(500)
-
-    return True
 
 def main_game():
     """Main game"""
@@ -695,7 +691,6 @@ def main_game():
 
 def success():
     """Do the stuff we do once we're at CalTech"""
-    global speed_textbox, distance_until_turn_textbox, destination_distance_textbox
     draw_text(speed_textbox, "")
     draw_text(distance_until_turn_textbox, "")
     draw_text(turn_textbox, "YOU MADE IT!")
