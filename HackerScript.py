@@ -18,7 +18,7 @@ CLOCK = pygame.time.Clock()
 
 print "Initializing Pygame display..."
 SCREEN = pygame.display.set_mode((0, 0))
-# pygame.display.toggle_fullscreen()
+pygame.display.toggle_fullscreen()
 
 ## Pin assignments
 LEFT_BUTTON_INPUT  = 16
