@@ -126,7 +126,7 @@ def update_speedometer_clock(input):
     speedometer_t0 = speedometer_t1
     speedometer_t1 = time.clock()
 
-    pedal_circumference = 8
+    pedal_circumference = 12
     instantaneous_speed = float(pedal_circumference)/float(speedometer_t1 - speedometer_t0)
     # print 'Instantaneous_speed: ' + str(instantaneous_speed)
 
@@ -340,7 +340,7 @@ def release_maglock():
 # Initializations
 print "Rendering welcome screen..."
 welcome_textbox = TextBox(0, SCREENHEIGHT/16*3, SCREENWIDTH, SCREENHEIGHT/8, BLACK)
-draw_text(welcome_textbox, "CANNONBALL RUN: The Game", WHITE)
+draw_text(welcome_textbox, "Initializing...", WHITE)
 update_display()
 
 print "Conducting remaining initializations..."
@@ -385,7 +385,10 @@ location_dict = {
     "lost_highway_d":Location("lost-highway-d.jpg"),
     "lost_highway_e":Location("lost-highway-e.png"),
     "lost_highway_f":Location("lost-highway-f.png"),
-    "lost_highway_g":Location("lost-highway-g.png")
+    "lost_highway_g":Location("lost-highway-g.png"),
+    "lost_highway_h":Location("lost-highway-h.png"),
+    "lost_highway_i":Location("lost_highway-i.png"),
+    "lost_highway_j":Location("lost_highway_j.jpg")
 }
 
 print "Initializing map..."
@@ -403,32 +406,32 @@ print "Initializing map..."
 location_dict["highway_a"].left_link = "highway_b"
 location_dict["highway_a"].right_link = "lost_highway_a"
 
-location_dict["highway_b"].left_link = "lost_highway_a"
+location_dict["highway_b"].left_link = "lost_highway_b"
 location_dict["highway_b"].right_link = "highway_c"
 
-location_dict["highway_c"].left_link = "lost_highway_a"
+location_dict["highway_c"].left_link = "lost_highway_c"
 location_dict["highway_c"].right_link = "highway_d"
 
 location_dict["highway_d"].left_link = "highway_e"
-location_dict["highway_d"].right_link = "lost_highway_b"
+location_dict["highway_d"].right_link = "lost_highway_d"
 
 location_dict["highway_e"].left_link = "highway_f"
-location_dict["highway_e"].right_link = "lost_highway_c"
+location_dict["highway_e"].right_link = "lost_highway_e"
 
-location_dict["highway_f"].left_link = "lost_highway_d"
+location_dict["highway_f"].left_link = "lost_highway_f"
 location_dict["highway_f"].right_link = "highway_g"
 
 location_dict["highway_g"].left_link = "highway_h"
-location_dict["highway_g"].right_link = "lost_highway_e"
+location_dict["highway_g"].right_link = "lost_highway_g"
 
-location_dict["highway_h"].left_link = "lost_highway_f"
+location_dict["highway_h"].left_link = "lost_highway_h"
 location_dict["highway_h"].right_link = "highway_i"
 
-location_dict["highway_i"].left_link = "lost_highway_g"
+location_dict["highway_i"].left_link = "lost_highway_i"
 location_dict["highway_i"].right_link = "highway_j"
 
 location_dict["highway_j"].left_link = "calTech"
-location_dict["highway_j"].right_link = "lost_highway_g"
+location_dict["highway_j"].right_link = "lost_highway_j"
 
 location_dict["lost_highway_a"].left_link = "highway_a"
 location_dict["lost_highway_a"].right_link = "highway_a"
@@ -450,6 +453,15 @@ location_dict["lost_highway_f"].right_link = "highway_f"
 
 location_dict["lost_highway_g"].left_link = "highway_g"
 location_dict["lost_highway_g"].right_link = "highway_g"
+
+location_dict["lost_highway_h"].left_link = "highway_h"
+location_dict["lost_highway_h"].right_link = "highway_h"
+
+location_dict["lost_highway_i"].left_link = "highway_i"
+location_dict["lost_highway_i"].right_link = "highway_i"
+
+location_dict["lost_highway_j"].left_link = "highway_j"
+location_dict["lost_highway_j"].right_link = "highway_j"
 
 print "Calculating map distances..."
 for k, v in location_dict.iteritems():
@@ -567,6 +579,10 @@ def welcome():
 def welcome_screen_1():
     """Let our users know how to start CANNONBALL RUN: THE GAME"""
     status_text = ""
+    pygame.event.clear()
+
+    draw_text(welcome_textbox, "")
+    update_display()
     pygame.event.clear()
 
     while True:
