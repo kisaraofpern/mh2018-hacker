@@ -20,6 +20,7 @@ print "Initializing Pygame display..."
 SCREEN = pygame.display.set_mode((0, 0))
 pygame.display.toggle_fullscreen()
 
+print "foo"
 ## Pin assignments
 LEFT_BUTTON_INPUT  = 16
 LEFT_BUTTON_LED    = 15
@@ -28,6 +29,7 @@ RIGHT_BUTTON_LED   = 11
 SPEEDOMETER        = 18
 MAGLOCK            = 24
 
+print "bar"
 ## Default values for class definitions
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -39,6 +41,7 @@ SCREENHEIGHT = SCREEN.get_height()
 MAIN_RECT = pygame.Rect(0, 0, SCREENWIDTH, SCREENHEIGHT)
 FPS = 6
 
+print "baz"
 # Class Definitions
 class Location(object):
     """A Location is a node on the decision tree that comprises the game."""
