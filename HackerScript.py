@@ -388,7 +388,7 @@ location_dict = {
     "lost_highway_g":Location("lost-highway-g.png"),
     "lost_highway_h":Location("lost-highway-h.png"),
     "lost_highway_i":Location("lost_highway-i.png"),
-    "lost_highway_j":Location("lost_highway_j.jpg")
+    "lost_highway_j":Location("lost_highway-j.jpg")
 }
 
 print "Initializing map..."
